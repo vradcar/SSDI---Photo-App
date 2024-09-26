@@ -1,9 +1,10 @@
-# \<Project Name\> Scrum Team
+# Group 6 Scrum Team
 ## Product Owner
-\<Team Member Name\>
+Neha Valsange
 ## Scrum Master
-\<Team Member Name\>
+Varad Paradkar
 ## Developers
-- \<Team Member Name\>
-- \<Team Member Name\>
-- \<Team Member Name\>
+- Ajitesh Reddy
+- Nidhi Shah
+- Abhijith Papakanti
+- Neha Valsange
