@@ -24,6 +24,7 @@ class UserDetail extends React.Component {
     this.state = {
       user: null
     };
+    this.handleViewImageClick = this.handleViewImageClick.bind(this);
   }
 
   componentDidMount() {
@@ -41,7 +42,10 @@ class UserDetail extends React.Component {
     }
   }
 
-
+  handleViewImageClick() {
+    const { userId, history } = this.props; // Extract userId and history from props
+    history.push(`/photos/${this.state.user._id}`); // Navigate to the userPhotos route
+  }
   render() {
     const { user } = this.state;
 
@@ -53,6 +57,7 @@ class UserDetail extends React.Component {
       );
     }
    
+
     return (
       <><Typography variant="body1">
         {/* This should be the UserDetail view of the PhotoShare app. Since
@@ -102,8 +107,9 @@ user from window.models.userModel(userId). */}
             <Button
               variant="contained"
               color="primary"
-              component={Link}
-              to={`/photos/${user._id}`} // Link to the UserPhotos component with the userId as a parameter
+              // component={Link}
+              // to={`/photos/${user._id}`}
+              onClick={this.handleViewImageClick}  // Link to the UserPhotos component with the userId as a parameter
               style={{ textDecoration: 'none', color: 'white' }}
             >
               View {user.first_name}'s Photos

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Typography
+  Typography, Card,CardContent, Grid
 } from '@mui/material';
 import './userPhotos.css';
 
@@ -52,9 +52,9 @@ class UserPhotos extends React.Component {
   
     const { photos, loading } = this.state;
 
-    if (loading) {
-      return <CircularProgress />; // Display a loading spinner while fetching photos
-    }
+    // if (loading) {
+    //   return <CircularProgress />; // Display a loading spinner while fetching photos
+    // }
 
     if (photos.length === 0) {
       return (
