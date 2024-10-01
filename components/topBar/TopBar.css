@@ -1,4 +1,16 @@
 .topbar-appBar {
-  height: 60;
-  justify-content: 'center';
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1100; /* Ensures the TopBar stays above other content */
+}
+
+.topbar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.content {
+  margin-top: 64px; /* Adjust this based on the height of your AppBar */
 }

@@ -1,95 +1,116 @@
 import React from 'react';
 import {
-  Typography, Card,CardContent, Grid
+  Typography, Card, CardContent, Grid, Paper, Link
 } from '@mui/material';
 import './userPhotos.css';
 
-
 /**
- * Define UserPhotos, a React componment of project #5
+ * Define UserPhotos, a React component for displaying user photos and their comments
  */
 class UserPhotos extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       photos: [],
+      user: null, // To store user details
       loading: true,
     };
-
-
   }
 
   componentDidMount() {
-    this.fetchUserPhotos();
+    this.fetchUserData();
   }
+
   componentDidUpdate(prevProps) {
-    // Re-fetch the photos if the userId has changed
+    // Re-fetch the photos and user details if the userId has changed
     if (this.props.match.params.userId !== prevProps.match.params.userId) {
-      this.fetchUserPhotos();
+      this.fetchUserData();
     }
   }
-  fetchUserPhotos = () => {
+
+  fetchUserData = () => {
     const userId = this.props.match.params.userId;
-    // Simulate fetching photos from a server or model
-    const photos = models.photoOfUserModel(userId); // Assuming photos are fetched by user ID
-    this.setState({ photos, loading: false });
+
+    // Fetch photos from the model (assumed from window.models)
+    const photos = window.models.photoOfUserModel(userId); // Fetch photos by user ID
+    const user = window.models.userModel(userId); // Fetch user details by user ID
+
+    this.setState({ photos, user, loading: false });
   };
 
   render() {
-    // return (
-    //   <Typography variant="body1">
-    //   This should be the UserPhotos view of the PhotoShare app. Since
-    //   it is invoked from React Router the params from the route will be
-    //   in property match. So this should show details of user:
-    //   {this.props.match.params.userId}. You can fetch the model for the user from
-    //   window.models.photoOfUserModel(userId):
-    //     <Typography variant="caption">
-    //       {JSON.stringify(window.models.photoOfUserModel(this.props.match.params.userId))}
-    //     </Typography>
-    //   </Typography>
-    // );
-  
-  
-    const { photos, loading } = this.state;
+    const { photos, user, loading } = this.state;
 
-    // if (loading) {
-    //   return <CircularProgress />; // Display a loading spinner while fetching photos
-    // }
-
-    if (photos.length === 0) {
+    if (loading) {
       return (
-        <Typography variant="h6" style={{ margin: '20px auto' }}>
-          No photos available for this user.
+        <Typography variant="h6" style={{ textAlign: 'center', margin: '20px' }}>
+          Loading photos...
+        </Typography>
+      );
+    }
+
+    if (!user || photos.length === 0) {
+      return (
+        <Typography variant="h6" style={{ margin: '20px auto', textAlign: 'center' }}>
+          {user ? `No photos available for ${user.first_name} ${user.last_name}.` : 'No user data available.'}
         </Typography>
       );
     }
 
     return (
-      <Card style={{ maxWidth: 800, margin: '20px auto', padding: '20px' }}>
+      <Card style={{ maxWidth: 1000, margin: '20px auto', padding: '20px' }}>
         <CardContent>
           <Typography variant="h5" gutterBottom>
-            User Photos
+            Photos of {user.first_name} {user.last_name}
           </Typography>
 
-          <Grid container spacing={2}>
+          <Grid container spacing={4}>
             {photos.map((photo, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <img
-                  src={`/images/${photo.file_name}`} // Assuming the photo filenames are stored
-                  alt={`Photo taken on ${photo.date_time}`}
-                  style={{ width: '100%', height: 'auto' }}
-                />
-                <Typography variant="caption" display="block" gutterBottom>
-                  {photo.date_time}
-                </Typography>
+              <Grid item xs={12} key={index}>
+                <Paper elevation={3} style={{ padding: '15px', marginBottom: '20px' }}>
+                  <img
+                    src={`/images/${photo.file_name}`} // Assuming the photo filenames are stored
+                    alt={`Photo taken on ${photo.date_time}`}
+                    style={{ width: '100%', height: 'auto' }}
+                  />
+                  <Typography variant="caption" display="block" gutterBottom>
+                    {new Date(photo.date_time).toLocaleString()}
+                  </Typography>
+
+                  {/* Display comments for this photo */}
+                  {photo.comments && photo.comments.length > 0 ? (
+                    <div>
+                      <Typography variant="h6" style={{ marginTop: '10px' }}>
+                        Comments:
+                      </Typography>
+                      {photo.comments.map((comment, idx) => (
+                        <Paper
+                          key={idx}
+                          elevation={2}
+                          style={{ padding: '10px', margin: '10px 0' }}
+                        >
+                          <Typography variant="body2">
+                            <Link href={`#/users/${comment.user._id}`}>
+                              {comment.user.first_name} {comment.user.last_name}
+                            </Link>{' '}
+                            commented on {new Date(comment.date_time).toLocaleString()}:
+                          </Typography>
+                          <Typography variant="body1">{comment.comment}</Typography>
+                        </Paper>
+                      ))}
+                    </div>
+                  ) : (
+                    <Typography variant="body2" color="textSecondary">
+                      No comments on this photo.
+                    </Typography>
+                  )}
+                </Paper>
               </Grid>
             ))}
           </Grid>
         </CardContent>
       </Card>
     );
-  
-  
   }
 }
 
