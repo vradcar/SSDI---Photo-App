@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography } from '@mui/material';
 import { withRouter } from 'react-router-dom';
+import fetchModel from '../../lib/fetchModelData'; 
 import './TopBar.css';
 
 class TopBar extends React.Component {
@@ -9,11 +10,13 @@ class TopBar extends React.Component {
     this.state = {
       user: null,
       isPhotoView: false,
+      version: '',  // To store the version number
     };
   }
 
   componentDidMount() {
     this.updateContext();
+    this.fetchVersionNumber();
   }
 
   componentDidUpdate(prevProps) {
@@ -34,15 +37,34 @@ class TopBar extends React.Component {
     }
 
     if (userId) {
-      const user = window.models.userModel(userId);
-      this.setState({ user, isPhotoView: path.startsWith('/photos/') });
+      // Use fetchModel to fetch user data instead of window.models
+      fetchModel(`/user/${userId}`)
+        .then((response) => {
+          this.setState({ user: response.data, isPhotoView: path.startsWith('/photos/') });
+        })
+        .catch((error) => {
+          console.error('Error fetching user data:', error);
+          this.setState({ user: null });
+        });
     } else {
       this.setState({ user: null, isPhotoView: false });
     }
   }
 
+  fetchVersionNumber() {
+    // Fetch version number from the /test/info API
+    fetchModel('/test/info')
+      .then((response) => {
+        const version = response.data.__v; // Assuming version is stored in __v
+        this.setState({ version });
+      })
+      .catch((error) => {
+        console.error('Error fetching version number:', error);
+      });
+  }
+
   render() {
-    const { user, isPhotoView } = this.state;
+    const { user, isPhotoView, version } = this.state;
     const displayText = user
       ? `${isPhotoView ? 'Photos of' : 'Details of'} ${user.first_name} ${user.last_name}`
       : 'Photo Sharing App';
@@ -55,6 +77,9 @@ class TopBar extends React.Component {
           </Typography>
           <Typography variant="h6" className="topbar-content">
             {displayText}
+          </Typography>
+          <Typography variant="body1" className="topbar-version" style={{ marginLeft: '20px' }}>
+            Version: {version}
           </Typography>
         </Toolbar>
       </AppBar>

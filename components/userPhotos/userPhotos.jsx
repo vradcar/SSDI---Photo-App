@@ -3,6 +3,7 @@ import {
   Typography, Card, CardContent, Grid, Paper, Link
 } from '@mui/material';
 import './userPhotos.css';
+import fetchModel from '../../lib/fetchModelData';
 
 /**
  * Define UserPhotos, a React component for displaying user photos and their comments
@@ -30,12 +31,24 @@ class UserPhotos extends React.Component {
 
   fetchUserData = () => {
     const userId = this.props.match.params.userId;
+    this.setState({ loading: true });
 
-    // Fetch photos from the model (assumed from window.models)
-    const photos = window.models.photoOfUserModel(userId); // Fetch photos by user ID
-    const user = window.models.userModel(userId); // Fetch user details by user ID
-
-    this.setState({ photos, user, loading: false });
+    // Fetch user data and photos concurrently using fetchModel
+    Promise.all([
+      fetchModel(`/user/${userId}`),             // Fetch user details by user ID
+      fetchModel(`/photosOfUser/${userId}`)      // Fetch photos by user ID
+    ])
+    .then(([userResponse, photosResponse]) => {
+      this.setState({
+        user: userResponse.data,
+        photos: photosResponse.data,
+        loading: false,
+      });
+    })
+    .catch((error) => {
+      console.error('Error fetching data:', error);
+      this.setState({ loading: false });
+    });
   };
 
   render() {
@@ -68,11 +81,11 @@ class UserPhotos extends React.Component {
             {photos.map((photo, index) => (
               <Grid item xs={12} key={index}>
                 <Paper elevation={3} style={{ padding: '15px', marginBottom: '20px' }}>
-                  <img
-                    src={`/images/${photo.file_name}`} // Assuming the photo filenames are stored
-                    alt={`Photo taken on ${photo.date_time}`}
-                    style={{ width: '100%', height: 'auto' }}
-                  />
+                <img
+                  src={`/images/${photo.file_name}`}
+                  alt={`Taken on ${photo.date_time}`}  // Removed the word "Photo"
+                  style={{ width: '100%', height: 'auto' }}
+                />
                   <Typography variant="caption" display="block" gutterBottom>
                     {new Date(photo.date_time).toLocaleString()}
                   </Typography>
