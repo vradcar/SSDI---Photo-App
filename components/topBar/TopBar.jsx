@@ -3,6 +3,7 @@ import { AppBar, Toolbar, Typography } from '@mui/material';
 import { withRouter } from 'react-router-dom';
 import fetchModel from '../../lib/fetchModelData'; 
 import './TopBar.css';
+import { version } from 'bluebird';
 
 class TopBar extends React.Component {
   constructor(props) {
@@ -38,29 +39,47 @@ class TopBar extends React.Component {
 
     if (userId) {
       // Use fetchModel to fetch user data instead of window.models
-      fetchModel(`/user/${userId}`)
-        .then((response) => {
-          this.setState({ user: response.data, isPhotoView: path.startsWith('/photos/') });
-        })
-        .catch((error) => {
-          console.error('Error fetching user data:', error);
-          this.setState({ user: null });
-        });
+
+    fetch(`/user/${userId}`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      return response.json();
+    })
+    .then((userData) => {
+   //   this.setState({ user: userData }); // Set user details in state
+      this.setState({ user: userData, isPhotoView: path.startsWith('/photos/') });
+    })
+    .catch((error) => {
+      console.error('Error fetching user details:', error);
+    });
+
+
+      // fetch(`/user/${userId}`)
+      //   .then((response) => {
+      //     this.setState({ user: response.data, isPhotoView: path.startsWith('/photos/') });
+      //   })
+      //   .catch((error) => {
+      //     console.error('Error fetching user data:', error);
+      //     this.setState({ user: null });
+      //   });
     } else {
       this.setState({ user: null, isPhotoView: false });
     }
   }
 
   fetchVersionNumber() {
+    this.setState({ version:0 });
     // Fetch version number from the /test/info API
-    fetchModel('/test/info')
-      .then((response) => {
-        const version = response.data.__v; // Assuming version is stored in __v
-        this.setState({ version });
-      })
-      .catch((error) => {
-        console.error('Error fetching version number:', error);
-      });
+    // fetchModel('/test/info')
+    //   .then((response) => {
+    //     const version = response.data.__v; // Assuming version is stored in __v
+    //     this.setState({ version });
+    //   })
+    //   .catch((error) => {
+    //     console.error('Error fetching version number:', error);
+    //   });
   }
 
   render() {
@@ -73,7 +92,7 @@ class TopBar extends React.Component {
       <AppBar className="topbar-appBar" position="fixed">
         <Toolbar className="topbar-toolbar">
           <Typography variant="h6" className="topbar-title" style={{ flexGrow: 1, textAlign: 'left' }}>
-            Group 6 - Project 5 - Sprint 1
+            Group 6 - Project 6 - Sprint 2
           </Typography>
           <Typography variant="h6" className="topbar-content">
             {displayText}
