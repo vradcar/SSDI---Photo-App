@@ -37,14 +37,31 @@ class UserDetail extends React.Component {
   fetchUserData = () => {
     const userId = this.props.match.params.userId; // Extract userId from route params
 
-    // Fetch user details from the server using the fetchModel function
-    fetchModel(`/user/${userId}`)
-      .then((response) => {
-        this.setState({ user: response.data }); // Set user details in state
-      })
-      .catch((error) => {
-        console.error('Error fetching user details:', error);
-      });
+    // // Fetch user details from the server using the fetchModel function
+    // fetchModel(`/user/${userId}`)
+    //   .then((response) => {
+    //     this.setState({ user: response.data }); // Set user details in state
+    //   })
+    //   .catch((error) => {
+    //     console.error('Error fetching user details:', error);
+    //   });
+
+
+      // Fetch user details from the server
+    fetch(`/user/${userId}`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      return response.json();
+    })
+    .then((userData) => {
+      this.setState({ user: userData }); // Set user details in state
+    })
+    .catch((error) => {
+      console.error('Error fetching user details:', error);
+    });
+
   };
 
   handleViewImageClick() {

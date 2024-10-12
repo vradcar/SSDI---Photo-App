@@ -33,15 +33,40 @@ class UserPhotos extends React.Component {
     const userId = this.props.match.params.userId;
     this.setState({ loading: true });
 
-    // Fetch user data and photos concurrently using fetchModel
-    Promise.all([
-      fetchModel(`/user/${userId}`),             // Fetch user details by user ID
-      fetchModel(`/photosOfUser/${userId}`)      // Fetch photos by user ID
+    // // Fetch user data and photos concurrently using fetchModel
+    // Promise.all([
+    //   fetchModel(`/user/${userId}`),             // Fetch user details by user ID
+    //   fetchModel(`/photosOfUser/${userId}`)      // Fetch photos by user ID
+    // ])
+    // .then(([userResponse, photosResponse]) => {
+    //   this.setState({
+    //     user: userResponse.data,
+    //     photos: photosResponse.data,
+    //     loading: false,
+    //   });
+    // })
+    // .catch((error) => {
+    //   console.error('Error fetching data:', error);
+    //   this.setState({ loading: false });
+    // });
+
+     // Fetch user data and photos concurrently from the server
+     Promise.all([
+      fetch(`/user/${userId}`),            // Fetch user details by user ID
+      fetch(`/photosOfUser/${userId}`)     // Fetch photos by user ID
     ])
     .then(([userResponse, photosResponse]) => {
+      // Ensure both responses are successful
+      if (!userResponse.ok || !photosResponse.ok) {
+        throw new Error('Error fetching data');
+      }
+      return Promise.all([userResponse.json(), photosResponse.json()]);
+    })
+    .then(([userData, photosData]) => {
+      // Set the user and photos in state
       this.setState({
-        user: userResponse.data,
-        photos: photosResponse.data,
+        user: userData,
+        photos: photosData,
         loading: false,
       });
     })
@@ -49,6 +74,9 @@ class UserPhotos extends React.Component {
       console.error('Error fetching data:', error);
       this.setState({ loading: false });
     });
+
+
+
   };
 
   render() {

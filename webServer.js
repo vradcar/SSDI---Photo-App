@@ -46,7 +46,7 @@ const SchemaInfo = require("./schema/schemaInfo.js");
 
 // XXX - Your submission should work without this line. Comment out or delete
 // this line for tests and before submission!
-const models = require("./modelData/photoApp.js").models;
+//const models = require("./modelData/photoApp.js").models;
 mongoose.set("strictQuery", false);
 mongoose.connect("mongodb://127.0.0.1/project6", {
   useNewUrlParser: true,
@@ -143,43 +143,147 @@ app.get("/test/:p1", function (request, response) {
  * URL /user/list - Returns all the User objects.
  */
 app.get("/user/list", function (request, response) {
-  response.status(200).send(models.userListModel());
+  //response.status(200).send(models.userListModel());
+
+
+  User.find({}, "_id first_name last_name", function (err, users) {
+    if (err) {
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+    response.status(200).send(users);
+  });
 });
 
 /**
  * URL /user/:id - Returns the information for User (id).
  */
 app.get("/user/:id", function (request, response) {
+  // const id = request.params.id;
+  // const user = models.userModel(id);
+  // if (user === null) {
+  //   console.log("User with _id:" + id + " not found.");
+  //   response.status(400).send("Not found");
+  //   return;
+  // }
+  // response.status(200).send(user);
+
   const id = request.params.id;
-  const user = models.userModel(id);
-  if (user === null) {
-    console.log("User with _id:" + id + " not found.");
-    response.status(400).send("Not found");
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    response.status(400).send("Invalid user ID");
     return;
   }
-  response.status(200).send(user);
+
+  User.findById(id, function (err, user) {
+    if (err) {
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+    if (!user) {
+      response.status(400).send("User not found");
+      return;
+    }
+    response.status(200).send(user);
+  });
+
 });
 
 /**
  * URL /photosOfUser/:id - Returns the Photos for User (id).
  */
 app.get("/photosOfUser/:id", function (request, response) {
-  const id = request.params.id;
-  const photos = models.photoOfUserModel(id);
-  if (photos.length === 0) {
-    console.log("Photos for user with _id:" + id + " not found.");
-    response.status(400).send("Not found");
+//   const id = request.params.id;
+//   const photos = models.photoOfUserModel(id);
+//   if (photos.length === 0) {
+//     console.log("Photos for user with _id:" + id + " not found.");
+//     response.status(400).send("Not found");
+//     return;
+//   }
+//   response.status(200).send(photos);
+// });
+
+// const server = app.listen(3000, function () {
+//   const port = server.address().port;
+//   console.log(
+//     "Listening at http://localhost:" +
+//       port +
+//       " exporting the directory " +
+//       __dirname
+//   );
+
+const id = request.params.id;
+
+if (!mongoose.Types.ObjectId.isValid(id)) {
+  response.status(400).send("Invalid user ID");
+  return;
+}
+
+Photo.find({ user_id: id }, function (err, photos) {
+  if (err) {
+    response.status(500).send(JSON.stringify(err));
     return;
   }
-  response.status(200).send(photos);
+  if (photos.length === 0) {
+    response.status(400).send("No photos found for this user");
+    return;
+  }
+
+  async.map(
+    photos,
+    function (photo, callback) {
+      // Convert Mongoose object to plain JS object
+      const photoObj = JSON.parse(JSON.stringify(photo));
+
+      // Populate comments with minimal user info (_id, first_name, last_name)
+      async.map(
+        photo.comments,
+        function (comment, cb) {
+          User.findById(comment.user_id, "_id first_name last_name", function (
+            err,
+            user
+          ) {
+            if (err) {
+              cb(err);
+            } else {
+              const commentObj = {
+                comment: comment.comment,
+                date_time: comment.date_time,
+                _id: comment._id,
+                user: user,
+              };
+              cb(null, commentObj);
+            }
+          });
+        },
+        function (err, commentsWithUsers) {
+          if (err) {
+            callback(err);
+          } else {
+            photoObj.comments = commentsWithUsers;
+            callback(null, photoObj);
+          }
+        }
+      );
+    },
+    function (err, photosWithComments) {
+      if (err) {
+        response.status(500).send(JSON.stringify(err));
+      } else {
+        response.status(200).send(photosWithComments);
+      }
+    }
+  );
+});
 });
 
 const server = app.listen(3000, function () {
-  const port = server.address().port;
-  console.log(
-    "Listening at http://localhost:" +
-      port +
-      " exporting the directory " +
-      __dirname
-  );
+const port = server.address().port;
+console.log(
+  "Listening at http://localhost:" +
+    port +
+    " exporting the directory " +
+    __dirname
+);
+
 });
