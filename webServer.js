@@ -175,7 +175,7 @@ app.get("/user/:id", function (request, response) {
     return;
   }
 
-  User.findById(id, function (err, user) {
+  User.findById(id, "-__v", function (err, user) {
     if (err) {
       response.status(500).send(JSON.stringify(err));
       return;
@@ -212,69 +212,206 @@ app.get("/photosOfUser/:id", function (request, response) {
 //       __dirname
 //   );
 
-const id = request.params.id;
+// const id = request.params.id;
 
-if (!mongoose.Types.ObjectId.isValid(id)) {
-  response.status(400).send("Invalid user ID");
-  return;
-}
+// if (!mongoose.Types.ObjectId.isValid(id)) {
+//   response.status(400).send("Invalid user ID");
+//   return;
+// }
 
-Photo.find({ user_id: id }, function (err, photos) {
-  if (err) {
-    response.status(500).send(JSON.stringify(err));
+// Photo.find({ user_id: id }, function (err, photos) {
+//   if (err) {
+//     response.status(500).send(JSON.stringify(err));
+//     return;
+//   }
+//   if (photos.length === 0) {
+//     response.status(400).send("No photos found for this user");
+//     return;
+//   }
+
+//   async.map(
+//     photos,
+//     function (photo, callback) {
+//       // Convert Mongoose object to plain JS object
+//       const photoObj = JSON.parse(JSON.stringify(photo));
+
+//       // Populate comments with minimal user info (_id, first_name, last_name)
+//       async.map(
+//         photo.comments,
+//         function (comment, cb) {
+//           User.findById(comment.user_id, "_id first_name last_name", function (
+//             err,
+//             user
+//           ) {
+//             if (err) {
+//               cb(err);
+//             } else {
+//               const commentObj = {
+//                 comment: comment.comment,
+//                 date_time: comment.date_time,
+//                 _id: comment._id,
+//                 user: user,
+//               };
+//               cb(null, commentObj);
+//             }
+//           });
+//         },
+//         function (err, commentsWithUsers) {
+//           if (err) {
+//             callback(err);
+//           } else {
+//             photoObj.comments = commentsWithUsers;
+//             callback(null, photoObj);
+//           }
+//         }
+//       );
+//     },
+//     function (err, photosWithComments) {
+//       if (err) {
+//         response.status(500).send(JSON.stringify(err));
+//       } else {
+//         response.status(200).send(photosWithComments);
+//       }
+//     }
+//   );
+// });
+
+
+/////////////////////////////////////
+
+
+// const id = request.params.id;
+
+//   if (!mongoose.Types.ObjectId.isValid(id)) {
+//     response.status(400).send("Invalid user ID");
+//     return;
+//   }
+
+//   Photo.find({ user_id: id }, function (err, photos) {
+//     if (err) {
+//       response.status(500).send(JSON.stringify(err));
+//       return;
+//     }
+//     if (photos.length === 0) {
+//       response.status(400).send("No photos found for this user");
+//       return;
+//     }
+
+//     async.map(
+//       photos,
+//       function (photo, callback) {
+//         const photoObj = JSON.parse(JSON.stringify(photo));
+
+//         async.map(
+//           photo.comments,
+//           function (comment, cb) {
+//             // Exclude `__v` from the user data in comments
+//             User.findById(comment.user_id, "_id first_name last_name", function (
+//               err,
+//               user
+//             ) {
+//               if (err) {
+//                 cb(err);
+//               } else {
+//                 const commentObj = {
+//                   comment: comment.comment,
+//                   date_time: comment.date_time,
+//                   _id: comment._id,
+//                   user: user,
+//                 };
+//                 cb(null, commentObj);
+//               }
+//             });
+//           },
+//           function (err, commentsWithUsers) {
+//             if (err) {
+//               callback(err);
+//             } else {
+//               photoObj.comments = commentsWithUsers;
+//               callback(null, photoObj);
+//             }
+//           }
+//         );
+//       },
+//       function (err, photosWithComments) {
+//         if (err) {
+//           response.status(500).send(JSON.stringify(err));
+//         } else {
+//           response.status(200).send(photosWithComments);
+//         }
+//       }
+//     );
+//   });
+
+  ///////////////////////////////////////////////////////////////////
+
+
+  const id = request.params.id;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    response.status(400).send("Invalid user ID");
     return;
   }
-  if (photos.length === 0) {
-    response.status(400).send("No photos found for this user");
-    return;
-  }
 
-  async.map(
-    photos,
-    function (photo, callback) {
-      // Convert Mongoose object to plain JS object
-      const photoObj = JSON.parse(JSON.stringify(photo));
-
-      // Populate comments with minimal user info (_id, first_name, last_name)
-      async.map(
-        photo.comments,
-        function (comment, cb) {
-          User.findById(comment.user_id, "_id first_name last_name", function (
-            err,
-            user
-          ) {
-            if (err) {
-              cb(err);
-            } else {
-              const commentObj = {
-                comment: comment.comment,
-                date_time: comment.date_time,
-                _id: comment._id,
-                user: user,
-              };
-              cb(null, commentObj);
-            }
-          });
-        },
-        function (err, commentsWithUsers) {
-          if (err) {
-            callback(err);
-          } else {
-            photoObj.comments = commentsWithUsers;
-            callback(null, photoObj);
-          }
-        }
-      );
-    },
-    function (err, photosWithComments) {
-      if (err) {
-        response.status(500).send(JSON.stringify(err));
-      } else {
-        response.status(200).send(photosWithComments);
-      }
+  Photo.find({ user_id: id }, function (err, photos) {
+    if (err) {
+      response.status(500).send(JSON.stringify(err));
+      return;
     }
-  );
-});
+    if (photos.length === 0) {
+      response.status(400).send("No photos found for this user");
+      return;
+    }
+
+    async.map(
+      photos,
+      function (photo, callback) {
+        // Convert Mongoose object to plain JS object and remove the __v field
+        const photoObj = photo.toObject();
+        delete photoObj.__v;
+
+        // Populate comments with minimal user info (_id, first_name, last_name)
+        async.map(
+          photoObj.comments,
+          function (comment, cb) {
+            User.findById(comment.user_id, "_id first_name last_name", function (
+              err,
+              user
+            ) {
+              if (err) {
+                cb(err);
+              } else {
+                const commentObj = {
+                  comment: comment.comment,
+                  date_time: comment.date_time,
+                  _id: comment._id,
+                  user: user,
+                };
+                cb(null, commentObj);
+              }
+            });
+          },
+          function (err, commentsWithUsers) {
+            if (err) {
+              callback(err);
+            } else {
+              photoObj.comments = commentsWithUsers;
+              callback(null, photoObj);
+            }
+          }
+        );
+      },
+      function (err, photosWithComments) {
+        if (err) {
+          response.status(500).send(JSON.stringify(err));
+        } else {
+          response.status(200).send(photosWithComments);
+        }
+      }
+    );
+  });
+
+
 });
 
 const server = app.listen(3000, function () {
@@ -285,5 +422,6 @@ console.log(
     " exporting the directory " +
     __dirname
 );
+
 
 });
