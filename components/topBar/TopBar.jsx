@@ -4,6 +4,7 @@ import { withRouter } from 'react-router-dom';
 import fetchModel from '../../lib/fetchModelData'; 
 import './TopBar.css';
 import { version } from 'bluebird';
+import axios from 'axios';
 
 class TopBar extends React.Component {
   constructor(props) {
@@ -38,23 +39,37 @@ class TopBar extends React.Component {
     }
 
     if (userId) {
-      // Use fetchModel to fetch user data instead of window.models
+  //     // Use fetchModel to fetch user data instead of window.models
 
-    fetch(`/user/${userId}`)
+  //   fetch(`/user/${userId}`)
+  //   .then((response) => {
+  //     if (!response.ok) {
+  //       throw new Error('Failed to fetch user data');
+  //     }
+  //     return response.json();
+  //   })
+  //   .then((userData) => {
+  //  //   this.setState({ user: userData }); // Set user details in state
+  //     this.setState({ user: userData, isPhotoView: path.startsWith('/photos/') });
+  //   })
+  //   .catch((error) => {
+  //     console.error('Error fetching user details:', error);
+  //   });
+
+
+    // Use axios to fetch user data instead of fetchModel
+    axios.get(`/user/${userId}`)
     .then((response) => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-      return response.json();
-    })
-    .then((userData) => {
-   //   this.setState({ user: userData }); // Set user details in state
-      this.setState({ user: userData, isPhotoView: path.startsWith('/photos/') });
+      const userData = response.data;
+      this.setState({ 
+        user: userData, 
+        isPhotoView: path.startsWith('/photos/') 
+      });
     })
     .catch((error) => {
       console.error('Error fetching user details:', error);
+      this.setState({ user: null, isPhotoView: false });
     });
-
 
       // fetch(`/user/${userId}`)
       //   .then((response) => {

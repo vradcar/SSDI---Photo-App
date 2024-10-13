@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import './userList.css';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 //import fetchModel from '../../lib/fetchModelData';
 
 /**
@@ -33,20 +34,33 @@ class UserList extends React.Component {
     //   });
 
 
-      fetch('/user/list')  // Fetch data from the backend
-      .then(response => response.json())  // Parse the JSON from the response
-      .then(
-        (data) => {
-          this.setState({
-            users: data // Set the fetched users data to the state
-          });
-        },
-        (error) => {
-          this.setState({
-            error // In case of error, store it in state
-          });
-        }
-      );
+      // fetch.get('/user/list')  // Fetch data from the backend
+      // .then(response => response.json())  // Parse the JSON from the response
+      // .then(
+      //   (data) => {
+      //     this.setState({
+      //       users: data // Set the fetched users data to the state
+      //     });
+      //   },
+      //   (error) => {
+      //     this.setState({
+      //       error // In case of error, store it in state
+      //     });
+      //   }
+      // );
+
+      axios.get('/user/list')  // Fetch data from the backend
+    .then(response => {
+      // The fetched data is in response.data
+      this.setState({
+        users: response.data  // Set the fetched users data to the state
+      });
+    })
+    .catch(error => {
+      this.setState({
+        error  // In case of error, store it in state
+      });
+    });
   }
 
   render() {

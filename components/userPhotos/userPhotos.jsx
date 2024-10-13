@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import './userPhotos.css';
 import fetchModel from '../../lib/fetchModelData';
-
+import axios from 'axios';
 /**
  * Define UserPhotos, a React component for displaying user photos and their comments
  */
@@ -15,6 +15,7 @@ class UserPhotos extends React.Component {
       photos: [],
       user: null, // To store user details
       loading: true,
+      error: null,
     };
   }
 
@@ -31,7 +32,7 @@ class UserPhotos extends React.Component {
 
   fetchUserData = () => {
     const userId = this.props.match.params.userId;
-    this.setState({ loading: true });
+    this.setState({ loading: true, error: null });
 
     // // Fetch user data and photos concurrently using fetchModel
     // Promise.all([
@@ -51,30 +52,50 @@ class UserPhotos extends React.Component {
     // });
 
      // Fetch user data and photos concurrently from the server
-     Promise.all([
-      fetch(`/user/${userId}`),            // Fetch user details by user ID
-      fetch(`/photosOfUser/${userId}`)     // Fetch photos by user ID
+    //  Promise.all([
+    //   // fetch(`/user/${userId}`),            // Fetch user details by user ID
+    //   // fetch(`/photosOfUser/${userId}`)     // Fetch photos by user ID
+    //   axios.get(`/user/${userId}`),            // Fetch user details by user ID
+    //  axios.get(`/photosOfUser/${userId}`)     // Fetch photos by user ID
+    // ])
+    // .then(([userResponse, photosResponse]) => {
+    //   // Ensure both responses are successful
+    //   if (!userResponse.ok || !photosResponse.ok) {
+    //     throw new Error('Error fetching data');
+    //   }
+    //   return Promise.all([userResponse.json(), photosResponse.json()]);
+    // })
+    // .then(([userData, photosData]) => {
+    //   // Set the user and photos in state
+    //   this.setState({
+    //     user: userData,
+    //     photos: photosData,
+    //     loading: false,
+    //   });
+    // })
+    // .catch((error) => {
+    //   console.error('Error fetching data:', error);
+    //   this.setState({ loading: false });
+    // });
+
+
+    // Fetch user data and photos concurrently using axios
+    Promise.all([
+      axios.get(`/user/${userId}`),            // Fetch user details by user ID
+      axios.get(`/photosOfUser/${userId}`)     // Fetch photos by user ID
     ])
     .then(([userResponse, photosResponse]) => {
-      // Ensure both responses are successful
-      if (!userResponse.ok || !photosResponse.ok) {
-        throw new Error('Error fetching data');
-      }
-      return Promise.all([userResponse.json(), photosResponse.json()]);
-    })
-    .then(([userData, photosData]) => {
       // Set the user and photos in state
       this.setState({
-        user: userData,
-        photos: photosData,
+        user: userResponse.data,
+        photos: photosResponse.data,
         loading: false,
       });
     })
     .catch((error) => {
       console.error('Error fetching data:', error);
-      this.setState({ loading: false });
+      this.setState({ loading: false, error: 'Error fetching data' });
     });
-
 
 
   };

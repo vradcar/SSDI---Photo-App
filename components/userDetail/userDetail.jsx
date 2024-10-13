@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import './userDetail.css';
 import fetchModel from '../../lib/fetchModelData';
+import axios from 'axios';
 
 /**
  * Define UserDetail, a React component for displaying user details.
@@ -48,19 +49,29 @@ class UserDetail extends React.Component {
 
 
       // Fetch user details from the server
-    fetch(`/user/${userId}`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-      return response.json();
-    })
-    .then((userData) => {
-      this.setState({ user: userData }); // Set user details in state
-    })
-    .catch((error) => {
-      console.error('Error fetching user details:', error);
-    });
+    // fetch(`/user/${userId}`)
+    // .then((response) => {
+    //   if (!response.ok) {
+    //     throw new Error('Failed to fetch user data');
+    //   }
+    //   return response.json();
+    // })
+    // .then((userData) => {
+    //   this.setState({ user: userData }); // Set user details in state
+    // })
+    // .catch((error) => {
+    //   console.error('Error fetching user details:', error);
+    // });
+
+    // Fetch user details from the server using axios
+    axios.get(`/user/${userId}`)
+      .then((response) => {
+        this.setState({ user: response.data }); // Set user details in state
+      })
+      .catch((error) => {
+        console.error('Error fetching user details:', error);
+        this.setState({ error: 'Failed to fetch user data' }); // Set error state if fetching fails
+      });
 
   };
 
