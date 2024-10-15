@@ -85,7 +85,7 @@ class TopBar extends React.Component {
   }
 
   fetchVersionNumber() {
-    this.setState({ version:0 });
+    this.setState({ version:1 });
     // Fetch version number from the /test/info API
     // fetchModel('/test/info')
     //   .then((response) => {
