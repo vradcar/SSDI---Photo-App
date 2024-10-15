@@ -1,10 +1,8 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography } from '@mui/material';
 import { withRouter } from 'react-router-dom';
-import fetchModel from '../../lib/fetchModelData'; 
+import axios from 'axios'; // Corrected import order
 import './TopBar.css';
-import { version } from 'bluebird';
-import axios from 'axios';
 
 class TopBar extends React.Component {
   constructor(props) {
@@ -39,62 +37,27 @@ class TopBar extends React.Component {
     }
 
     if (userId) {
-  //     // Use fetchModel to fetch user data instead of window.models
-
-  //   fetch(`/user/${userId}`)
-  //   .then((response) => {
-  //     if (!response.ok) {
-  //       throw new Error('Failed to fetch user data');
-  //     }
-  //     return response.json();
-  //   })
-  //   .then((userData) => {
-  //  //   this.setState({ user: userData }); // Set user details in state
-  //     this.setState({ user: userData, isPhotoView: path.startsWith('/photos/') });
-  //   })
-  //   .catch((error) => {
-  //     console.error('Error fetching user details:', error);
-  //   });
-
-
-    // Use axios to fetch user data instead of fetchModel
-    axios.get(`/user/${userId}`)
-    .then((response) => {
-      const userData = response.data;
-      this.setState({ 
-        user: userData, 
-        isPhotoView: path.startsWith('/photos/') 
+      // Use axios to fetch user data
+      axios.get(`/user/${userId}`)
+      .then((response) => {
+        const userData = response.data;
+        this.setState({ 
+          user: userData, 
+          isPhotoView: path.startsWith('/photos/') 
+        });
+      })
+      .catch((error) => {
+        console.error('Error fetching user details:', error);
+        this.setState({ user: null, isPhotoView: false });
       });
-    })
-    .catch((error) => {
-      console.error('Error fetching user details:', error);
-      this.setState({ user: null, isPhotoView: false });
-    });
-
-      // fetch(`/user/${userId}`)
-      //   .then((response) => {
-      //     this.setState({ user: response.data, isPhotoView: path.startsWith('/photos/') });
-      //   })
-      //   .catch((error) => {
-      //     console.error('Error fetching user data:', error);
-      //     this.setState({ user: null });
-      //   });
     } else {
       this.setState({ user: null, isPhotoView: false });
     }
   }
 
   fetchVersionNumber() {
-    this.setState({ version:1 });
-    // Fetch version number from the /test/info API
-    // fetchModel('/test/info')
-    //   .then((response) => {
-    //     const version = response.data.__v; // Assuming version is stored in __v
-    //     this.setState({ version });
-    //   })
-    //   .catch((error) => {
-    //     console.error('Error fetching version number:', error);
-    //   });
+    this.setState({ version: 1 });
+    // Fetch version number from the /test/info API if needed
   }
 
   render() {

@@ -352,34 +352,34 @@ app.get("/photosOfUser/:id", function (request, response) {
     response.status(400).send("Invalid user ID");
     return;
   }
-
-  Photo.find({ user_id: id }, function (err, photos) {
-    if (err) {
-      response.status(500).send(JSON.stringify(err));
+  
+  Photo.find({ user_id: id }, function (findError, photos) { // Renamed outer 'err' to 'findError'
+    if (findError) {
+      response.status(500).send(JSON.stringify(findError));
       return;
     }
     if (photos.length === 0) {
       response.status(400).send("No photos found for this user");
       return;
     }
-
+  
     async.map(
       photos,
-      function (photo, callback) {
+      function (photo, photoCallback) { // Renamed 'callback' to 'photoCallback'
         // Convert Mongoose object to plain JS object and remove the __v field
         const photoObj = photo.toObject();
         delete photoObj.__v;
-
+  
         // Populate comments with minimal user info (_id, first_name, last_name)
         async.map(
           photoObj.comments,
-          function (comment, cb) {
+          function (comment, commentCallback) { // Renamed 'cb' to 'commentCallback'
             User.findById(comment.user_id, "_id first_name last_name", function (
-              err,
+              userFindError, // Renamed 'err' to 'userFindError'
               user
             ) {
-              if (err) {
-                cb(err);
+              if (userFindError) {
+                commentCallback(userFindError);
               } else {
                 const commentObj = {
                   comment: comment.comment,
@@ -387,41 +387,40 @@ app.get("/photosOfUser/:id", function (request, response) {
                   _id: comment._id,
                   user: user,
                 };
-                cb(null, commentObj);
+                commentCallback(null, commentObj);
               }
             });
           },
-          function (err, commentsWithUsers) {
-            if (err) {
-              callback(err);
+          function (commentMapError, commentsWithUsers) { // Renamed 'err' to 'commentMapError'
+            if (commentMapError) {
+              photoCallback(commentMapError);
             } else {
               photoObj.comments = commentsWithUsers;
-              callback(null, photoObj);
+              photoCallback(null, photoObj);
             }
           }
         );
       },
-      function (err, photosWithComments) {
-        if (err) {
-          response.status(500).send(JSON.stringify(err));
+      function (photoMapError, photosWithComments) { // Renamed 'err' to 'photoMapError'
+        if (photoMapError) {
+          response.status(500).send(JSON.stringify(photoMapError));
         } else {
           response.status(200).send(photosWithComments);
         }
       }
     );
   });
-
-
-});
-
-const server = app.listen(3000, function () {
-const port = server.address().port;
-console.log(
-  "Listening at http://localhost:" +
-    port +
-    " exporting the directory " +
-    __dirname
-);
+  
+  const server = app.listen(3000, function () {
+    const port = server.address().port;
+    console.log(
+      "Listening at http://localhost:" +
+        port +
+        " exporting the directory " +
+        __dirname
+    );
+  });
+  
 
 
 });

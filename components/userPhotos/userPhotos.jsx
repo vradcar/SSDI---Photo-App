@@ -2,9 +2,9 @@ import React from 'react';
 import {
   Typography, Card, CardContent, Grid, Paper, Link
 } from '@mui/material';
+import axios from 'axios';  // Moved axios import above
 import './userPhotos.css';
-import fetchModel from '../../lib/fetchModelData';
-import axios from 'axios';
+
 /**
  * Define UserPhotos, a React component for displaying user photos and their comments
  */
@@ -15,7 +15,6 @@ class UserPhotos extends React.Component {
       photos: [],
       user: null, // To store user details
       loading: true,
-      error: null,
     };
   }
 
@@ -32,72 +31,25 @@ class UserPhotos extends React.Component {
 
   fetchUserData = () => {
     const userId = this.props.match.params.userId;
-    this.setState({ loading: true, error: null });
-
-    // // Fetch user data and photos concurrently using fetchModel
-    // Promise.all([
-    //   fetchModel(`/user/${userId}`),             // Fetch user details by user ID
-    //   fetchModel(`/photosOfUser/${userId}`)      // Fetch photos by user ID
-    // ])
-    // .then(([userResponse, photosResponse]) => {
-    //   this.setState({
-    //     user: userResponse.data,
-    //     photos: photosResponse.data,
-    //     loading: false,
-    //   });
-    // })
-    // .catch((error) => {
-    //   console.error('Error fetching data:', error);
-    //   this.setState({ loading: false });
-    // });
-
-     // Fetch user data and photos concurrently from the server
-    //  Promise.all([
-    //   // fetch(`/user/${userId}`),            // Fetch user details by user ID
-    //   // fetch(`/photosOfUser/${userId}`)     // Fetch photos by user ID
-    //   axios.get(`/user/${userId}`),            // Fetch user details by user ID
-    //  axios.get(`/photosOfUser/${userId}`)     // Fetch photos by user ID
-    // ])
-    // .then(([userResponse, photosResponse]) => {
-    //   // Ensure both responses are successful
-    //   if (!userResponse.ok || !photosResponse.ok) {
-    //     throw new Error('Error fetching data');
-    //   }
-    //   return Promise.all([userResponse.json(), photosResponse.json()]);
-    // })
-    // .then(([userData, photosData]) => {
-    //   // Set the user and photos in state
-    //   this.setState({
-    //     user: userData,
-    //     photos: photosData,
-    //     loading: false,
-    //   });
-    // })
-    // .catch((error) => {
-    //   console.error('Error fetching data:', error);
-    //   this.setState({ loading: false });
-    // });
-
+    this.setState({ loading: true });
 
     // Fetch user data and photos concurrently using axios
     Promise.all([
       axios.get(`/user/${userId}`),            // Fetch user details by user ID
       axios.get(`/photosOfUser/${userId}`)     // Fetch photos by user ID
     ])
-    .then(([userResponse, photosResponse]) => {
-      // Set the user and photos in state
-      this.setState({
-        user: userResponse.data,
-        photos: photosResponse.data,
-        loading: false,
+      .then(([userResponse, photosResponse]) => {
+        // Set the user and photos in state
+        this.setState({
+          user: userResponse.data,
+          photos: photosResponse.data,
+          loading: false,
+        });
+      })
+      .catch((error) => {
+        console.error('Error fetching data:', error);
+        this.setState({ loading: false });
       });
-    })
-    .catch((error) => {
-      console.error('Error fetching data:', error);
-      this.setState({ loading: false, error: 'Error fetching data' });
-    });
-
-
   };
 
   render() {
@@ -130,11 +82,11 @@ class UserPhotos extends React.Component {
             {photos.map((photo, index) => (
               <Grid item xs={12} key={index}>
                 <Paper elevation={3} style={{ padding: '15px', marginBottom: '20px' }}>
-                <img
-                  src={`/images/${photo.file_name}`}
-                  alt={`Taken on ${photo.date_time}`}  // Removed the word "Photo"
-                  style={{ width: '100%', height: 'auto' }}
-                />
+                  <img
+                    src={`/images/${photo.file_name}`}
+                    alt={`Taken on ${photo.date_time}`}  // Removed the word "Photo"
+                    style={{ width: '100%', height: 'auto' }}
+                  />
                   <Typography variant="caption" display="block" gutterBottom>
                     {new Date(photo.date_time).toLocaleString()}
                   </Typography>
