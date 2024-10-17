@@ -375,11 +375,11 @@ app.get("/photosOfUser/:id", function (request, response) {
           photoObj.comments,
           function (comment, cb) {
             User.findById(comment.user_id, "_id first_name last_name", function (
-              err,
+              err1,
               user
             ) {
-              if (err) {
-                cb(err);
+              if (err1) {
+                cb(err1);
               } else {
                 const commentObj = {
                   comment: comment.comment,
@@ -391,9 +391,9 @@ app.get("/photosOfUser/:id", function (request, response) {
               }
             });
           },
-          function (err, commentsWithUsers) {
-            if (err) {
-              callback(err);
+          function (err2, commentsWithUsers) {
+            if (err2) {
+              callback(err2);
             } else {
               photoObj.comments = commentsWithUsers;
               callback(null, photoObj);
@@ -401,9 +401,9 @@ app.get("/photosOfUser/:id", function (request, response) {
           }
         );
       },
-      function (err, photosWithComments) {
-        if (err) {
-          response.status(500).send(JSON.stringify(err));
+      function (err3, photosWithComments) {
+        if (err3) {
+          response.status(500).send(JSON.stringify(err3));
         } else {
           response.status(200).send(photosWithComments);
         }
