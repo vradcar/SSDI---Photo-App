@@ -39,10 +39,62 @@ const async = require("async");
 const express = require("express");
 const app = express();
 
+// Loading new dependencies - express session, body parser and multer
+const session = require("express-session");
+const bodyParser = require("body-parser");
+const multer = require("multer");
+
+app.use(session({secret: "secretKey", resave: false, saveUninitialized: false}));
+app.use(bodyParser.json());
+
 // Load the Mongoose schema for User, Photo, and SchemaInfo
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
 const SchemaInfo = require("./schema/schemaInfo.js");
+
+app.use(express.json());
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: true
+}));
+
+// POST /admin/login
+app.post("/admin/login", async (req, res) => {
+  const { login_name } = req.body;
+  if (!login_name) {
+    return res.status(400).send("login_name is required.");
+  }
+
+  const user = await User.findOne({ login_name });
+  if (!user) {
+    return res.status(400).send("User not found.");
+  }
+
+  req.session.user = user._id;
+  res.status(200).send(`User ${login_name} logged in successfully.`);
+});
+
+// POST /admin/logout
+app.post("/admin/logout", (req, res) => {
+  if (!req.session.user) {
+    return res.status(400).send("No user is logged in.");
+  }
+
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).send("Error logging out.");
+    }
+    res.status(200).send("Logged out successfully.");
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+
 
 // XXX - Your submission should work without this line. Comment out or delete
 // this line for tests and before submission!
