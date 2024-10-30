@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import "./loginRegister.css";
 
@@ -8,8 +8,18 @@ function LoginRegister({ setIsAuthenticated }) {
   const [errorMessage, setErrorMessage] = useState("");
   const history = useHistory();
 
+  // Redirect to homepage if already authenticated
+  useEffect(() => {
+    if (localStorage.getItem("isAuthenticated") === "true") {
+      setIsAuthenticated(true);
+      history.push("/");
+    }
+  }, [setIsAuthenticated, history]);
+
   const handleLogin = async (event) => {
     event.preventDefault();
+    setErrorMessage(""); // Clear previous error messages
+
     try {
       const response = await fetch("/admin/login", {
         method: "POST",
@@ -18,8 +28,9 @@ function LoginRegister({ setIsAuthenticated }) {
       });
 
       if (response.ok) {
-        setIsAuthenticated(true);  // Update authentication state in the parent component
-        history.push("/");  // Redirect to the main route upon successful login
+        setIsAuthenticated(true);
+        localStorage.setItem("isAuthenticated", "true"); // Persist session
+        history.push("/"); // Redirect to the main route upon successful login
       } else {
         const { message } = await response.json();
         setErrorMessage(message || "Login failed. Please try again.");

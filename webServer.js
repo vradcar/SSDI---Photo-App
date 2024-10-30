@@ -35,130 +35,59 @@ const mongoose = require("mongoose");
 mongoose.Promise = require("bluebird");
 
 const async = require("async");
-
 const express = require("express");
-const app = express();
-
-// Loading new dependencies - express session, body parser and multer
 const session = require("express-session");
 const bodyParser = require("body-parser");
 const multer = require("multer");
+const app = express();
 
-app.use(session({secret: "secretKey", resave: false, saveUninitialized: false}));
-app.use(bodyParser.json());
-
-// Load the Mongoose schema for User, Photo, and SchemaInfo
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
 const SchemaInfo = require("./schema/schemaInfo.js");
 
-app.use(express.json());
-app.use(session({
-  secret: 'your-secret-key',
-  resave: false,
-  saveUninitialized: true
-}));
-
-// POST /admin/login
-app.post("/admin/login", async (req, res) => {
-  const { login_name } = req.body;
-  if (!login_name) {
-    return res.status(400).send("login_name is required.");
-  }
-
-  const user = await User.findOne({ login_name });
-  if (!user) {
-    return res.status(400).send("User not found.");
-  }
-
-  req.session.user = user._id;
-  res.status(200).send(`User ${login_name} logged in successfully.`);
-});
-
-// POST /admin/logout
-app.post("/admin/logout", (req, res) => {
-  if (!req.session.user) {
-    return res.status(400).send("No user is logged in.");
-  }
-
-  req.session.destroy(err => {
-    if (err) {
-      return res.status(500).send("Error logging out.");
-    }
-    res.status(200).send("Logged out successfully.");
-  });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
-
-
-// XXX - Your submission should work without this line. Comment out or delete
-// this line for tests and before submission!
-//const models = require("./modelData/photoApp.js").models;
 mongoose.set("strictQuery", false);
 mongoose.connect("mongodb://127.0.0.1/project6", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// We have the express static module
-// (http://expressjs.com/en/starter/static-files.html) do all the work for us.
 app.use(express.static(__dirname));
+app.use(session({ secret: "secretKey", resave: false, saveUninitialized: false }));
+app.use(bodyParser.json());
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + "-" + Date.now());
+  },
+});
+const upload = multer({ storage: storage });
 
 app.get("/", function (request, response) {
   response.send("Simple web server of files from " + __dirname);
 });
 
-/**
- * Use express to handle argument passing in the URL. This .get will cause
- * express to accept URLs with /test/<something> and return the something in
- * request.params.p1.
- * 
- * If implement the get as follows:
- * /test        - Returns the SchemaInfo object of the database in JSON format.
- *                This is good for testing connectivity with MongoDB.
- * /test/info   - Same as /test.
- * /test/counts - Returns an object with the counts of the different collections
- *                in JSON format.
- */
 app.get("/test/:p1", function (request, response) {
-  // Express parses the ":p1" from the URL and returns it in the request.params
-  // objects.
-  console.log("/test called with param1 = ", request.params.p1);
-
   const param = request.params.p1 || "info";
 
   if (param === "info") {
-    // Fetch the SchemaInfo. There should only one of them. The query of {} will
-    // match it.
     SchemaInfo.find({}, function (err, info) {
       if (err) {
-        // Query returned an error. We pass it back to the browser with an
-        // Internal Service Error (500) error code.
         console.error("Error in /user/info:", err);
         response.status(500).send(JSON.stringify(err));
         return;
       }
       if (info.length === 0) {
-        // Query didn't return an error but didn't find the SchemaInfo object -
-        // This is also an internal error return.
         response.status(500).send("Missing SchemaInfo");
         return;
       }
 
-      // We got the object - return it in JSON format.
       console.log("SchemaInfo", info[0]);
       response.end(JSON.stringify(info[0]));
     });
   } else if (param === "counts") {
-    // In order to return the counts of all the collections we need to do an
-    // async call to each collections. That is tricky to do so we use the async
-    // package do the work. We put the collections into array and use async.each
-    // to do each .count() query.
     const collections = [
       { name: "user", collection: User },
       { name: "photo", collection: Photo },
@@ -185,18 +114,15 @@ app.get("/test/:p1", function (request, response) {
       }
     );
   } else {
-    // If we know understand the parameter we return a (Bad Parameter) (400)
-    // status.
     response.status(400).send("Bad param " + param);
   }
 });
 
-/**
- * URL /user/list - Returns all the User objects.
- */
 app.get("/user/list", function (request, response) {
-  //response.status(200).send(models.userListModel());
-
+  if (!request.session.loggedIn) {
+    response.status(401).send("Unauthorized");
+    return;
+  }
 
   User.find({}, "_id first_name last_name", function (err, users) {
     if (err) {
@@ -207,19 +133,7 @@ app.get("/user/list", function (request, response) {
   });
 });
 
-/**
- * URL /user/:id - Returns the information for User (id).
- */
 app.get("/user/:id", function (request, response) {
-  // const id = request.params.id;
-  // const user = models.userModel(id);
-  // if (user === null) {
-  //   console.log("User with _id:" + id + " not found.");
-  //   response.status(400).send("Not found");
-  //   return;
-  // }
-  // response.status(200).send(user);
-
   const id = request.params.id;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -238,166 +152,9 @@ app.get("/user/:id", function (request, response) {
     }
     response.status(200).send(user);
   });
-
 });
 
-/**
- * URL /photosOfUser/:id - Returns the Photos for User (id).
- */
 app.get("/photosOfUser/:id", function (request, response) {
-  //   const id = request.params.id;
-  //   const photos = models.photoOfUserModel(id);
-  //   if (photos.length === 0) {
-  //     console.log("Photos for user with _id:" + id + " not found.");
-  //     response.status(400).send("Not found");
-  //     return;
-  //   }
-  //   response.status(200).send(photos);
-  // });
-
-  // const server = app.listen(3000, function () {
-  //   const port = server.address().port;
-  //   console.log(
-  //     "Listening at http://localhost:" +
-  //       port +
-  //       " exporting the directory " +
-  //       __dirname
-  //   );
-
-  // const id = request.params.id;
-
-  // if (!mongoose.Types.ObjectId.isValid(id)) {
-  //   response.status(400).send("Invalid user ID");
-  //   return;
-  // }
-
-  // Photo.find({ user_id: id }, function (err, photos) {
-  //   if (err) {
-  //     response.status(500).send(JSON.stringify(err));
-  //     return;
-  //   }
-  //   if (photos.length === 0) {
-  //     response.status(400).send("No photos found for this user");
-  //     return;
-  //   }
-
-  //   async.map(
-  //     photos,
-  //     function (photo, callback) {
-  //       // Convert Mongoose object to plain JS object
-  //       const photoObj = JSON.parse(JSON.stringify(photo));
-
-  //       // Populate comments with minimal user info (_id, first_name, last_name)
-  //       async.map(
-  //         photo.comments,
-  //         function (comment, cb) {
-  //           User.findById(comment.user_id, "_id first_name last_name", function (
-  //             err,
-  //             user
-  //           ) {
-  //             if (err) {
-  //               cb(err);
-  //             } else {
-  //               const commentObj = {
-  //                 comment: comment.comment,
-  //                 date_time: comment.date_time,
-  //                 _id: comment._id,
-  //                 user: user,
-  //               };
-  //               cb(null, commentObj);
-  //             }
-  //           });
-  //         },
-  //         function (err, commentsWithUsers) {
-  //           if (err) {
-  //             callback(err);
-  //           } else {
-  //             photoObj.comments = commentsWithUsers;
-  //             callback(null, photoObj);
-  //           }
-  //         }
-  //       );
-  //     },
-  //     function (err, photosWithComments) {
-  //       if (err) {
-  //         response.status(500).send(JSON.stringify(err));
-  //       } else {
-  //         response.status(200).send(photosWithComments);
-  //       }
-  //     }
-  //   );
-  // });
-
-
-  /////////////////////////////////////
-
-
-  // const id = request.params.id;
-
-  //   if (!mongoose.Types.ObjectId.isValid(id)) {
-  //     response.status(400).send("Invalid user ID");
-  //     return;
-  //   }
-
-  //   Photo.find({ user_id: id }, function (err, photos) {
-  //     if (err) {
-  //       response.status(500).send(JSON.stringify(err));
-  //       return;
-  //     }
-  //     if (photos.length === 0) {
-  //       response.status(400).send("No photos found for this user");
-  //       return;
-  //     }
-
-  //     async.map(
-  //       photos,
-  //       function (photo, callback) {
-  //         const photoObj = JSON.parse(JSON.stringify(photo));
-
-  //         async.map(
-  //           photo.comments,
-  //           function (comment, cb) {
-  //             // Exclude `__v` from the user data in comments
-  //             User.findById(comment.user_id, "_id first_name last_name", function (
-  //               err,
-  //               user
-  //             ) {
-  //               if (err) {
-  //                 cb(err);
-  //               } else {
-  //                 const commentObj = {
-  //                   comment: comment.comment,
-  //                   date_time: comment.date_time,
-  //                   _id: comment._id,
-  //                   user: user,
-  //                 };
-  //                 cb(null, commentObj);
-  //               }
-  //             });
-  //           },
-  //           function (err, commentsWithUsers) {
-  //             if (err) {
-  //               callback(err);
-  //             } else {
-  //               photoObj.comments = commentsWithUsers;
-  //               callback(null, photoObj);
-  //             }
-  //           }
-  //         );
-  //       },
-  //       function (err, photosWithComments) {
-  //         if (err) {
-  //           response.status(500).send(JSON.stringify(err));
-  //         } else {
-  //           response.status(200).send(photosWithComments);
-  //         }
-  //       }
-  //     );
-  //   });
-
-  ///////////////////////////////////////////////////////////////////
-
-
   const id = request.params.id;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -418,11 +175,9 @@ app.get("/photosOfUser/:id", function (request, response) {
     async.map(
       photos,
       function (photo, callback) {
-        // Convert Mongoose object to plain JS object and remove the __v field
         const photoObj = photo.toObject();
         delete photoObj.__v;
 
-        // Populate comments with minimal user info (_id, first_name, last_name)
         async.map(
           photoObj.comments,
           function (comment, cb) {
@@ -462,8 +217,96 @@ app.get("/photosOfUser/:id", function (request, response) {
       }
     );
   });
+});
 
+// Login endpoint
+app.post("/admin/login", function (request, response) {
+  const { login_name, password } = request.body;
 
+  User.findOne({ login_name: login_name }, function (err, user) {
+    if (err) {
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+    if (!user || user.password !== password) {
+      response.status(400).send("Invalid login credentials");
+      return;
+    }
+    request.session.loggedIn = true;
+    request.session.user = user;
+    response.status(200).send("Login successful");
+  });
+});
+
+// Logout endpoint
+app.post("/admin/logout", function (request, response) {
+  if (request.session.loggedIn) {
+    request.session.destroy();
+    response.status(200).send("Logout successful");
+  } else {
+    response.status(400).send("User not logged in");
+  }
+});
+
+// Add comment to a photo
+app.post("/commentsOfPhoto/:photo_id", function (request, response) {
+  if (!request.session.loggedIn) {
+    response.status(401).send("Unauthorized");
+    return;
+  }
+
+  const { comment } = request.body;
+  const photoId = request.params.photo_id;
+  const userId = request.session.user._id;
+
+  if (!comment) {
+    response.status(400).send("Comment text is required");
+    return;
+  }
+
+  Photo.findById(photoId, function (err, photo) {
+    if (err) {
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+    if (!photo) {
+      response.status(400).send("Photo not found");
+      return;
+    }
+
+    photo.comments.push({ comment: comment, date_time: new Date(), user_id: userId });
+    photo.save(function (err) {
+      if (err) {
+        response.status(500).send(JSON.stringify(err));
+        return;
+      }
+      response.status(200).send("Comment added successfully");
+    });
+  });
+});
+
+// Photo upload endpoint
+app.post("/photos/new", upload.single("photo"), function (request, response) {
+  if (!request.session.loggedIn) {
+    response.status(401).send("Unauthorized");
+    return;
+  }
+
+  const userId = request.session.user._id;
+  const newPhoto = new Photo({
+    file_name: request.file.filename,
+    date_time: new Date(),
+    user_id: userId,
+    comments: [],
+  });
+
+  newPhoto.save(function (err) {
+    if (err) {
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+    response.status(200).send("Photo uploaded successfully");
+  });
 });
 
 const server = app.listen(3000, function () {
@@ -474,6 +317,4 @@ const server = app.listen(3000, function () {
     " exporting the directory " +
     __dirname
   );
-
-
 });

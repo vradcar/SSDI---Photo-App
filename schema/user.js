@@ -3,15 +3,16 @@
 const mongoose = require("mongoose");
 
 /**
- * Define the Mongoose Schema for a Comment.
+ * Define the Mongoose Schema for a User.
  */
 const userSchema = new mongoose.Schema({
-  login_name: { type: String, required: true, unique: true },
-  first_name: String,
-  last_name: String,
-  location: String,
-  description: String,
-  occupation: String,
+  login_name: { type: String, required: true, unique: true },  // Unique login name for each user
+  password: { type: String, required: true },  // Hashed password for authentication
+  first_name: { type: String, required: true },  // First name is required
+  last_name: { type: String, required: true },  // Last name is required
+  location: String,  // Optional location field
+  description: String,  // Optional description field
+  occupation: String,  // Optional occupation field
 });
 
 /**
