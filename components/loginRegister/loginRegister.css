@@ -1,4 +1,4 @@
-/* Centering the entire page */
+/* Centering the entire page
 body {
   display: flex;
   justify-content: center;
@@ -60,4 +60,29 @@ body {
   color: #f44336;
   text-align: center;
   margin-top: 12px;
+} */
+
+
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-content h5 {
+  font-weight: bold;
+  color: #3f51b5;
+}
+
+.text-field {
+  margin-bottom: 16px;
 }

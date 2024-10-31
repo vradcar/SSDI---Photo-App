@@ -46,7 +46,7 @@ const Photo = require("./schema/photo.js");
 const SchemaInfo = require("./schema/schemaInfo.js");
 
 mongoose.set("strictQuery", false);
-mongoose.connect("mongodb://127.0.0.1/project6", {
+mongoose.connect("mongodb://127.0.0.1/project7", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -219,34 +219,6 @@ app.get("/photosOfUser/:id", function (request, response) {
   });
 });
 
-// Login endpoint
-app.post("/admin/login", function (request, response) {
-  const { login_name, password } = request.body;
-
-  User.findOne({ login_name: login_name }, function (err, user) {
-    if (err) {
-      response.status(500).send(JSON.stringify(err));
-      return;
-    }
-    if (!user || user.password !== password) {
-      response.status(400).send("Invalid login credentials");
-      return;
-    }
-    request.session.loggedIn = true;
-    request.session.user = user;
-    response.status(200).send("Login successful");
-  });
-});
-
-// Logout endpoint
-app.post("/admin/logout", function (request, response) {
-  if (request.session.loggedIn) {
-    request.session.destroy();
-    response.status(200).send("Logout successful");
-  } else {
-    response.status(400).send("User not logged in");
-  }
-});
 
 // Add comment to a photo
 app.post("/commentsOfPhoto/:photo_id", function (request, response) {
@@ -308,6 +280,57 @@ app.post("/photos/new", upload.single("photo"), function (request, response) {
     response.status(200).send("Photo uploaded successfully");
   });
 });
+
+
+app.post('/admin/login', async (req, res) => {
+  const { login_name } = req.body;
+
+  // Check if login_name is provided
+  if (!login_name) {
+    return res.status(400).send('Login name is required');
+  }
+
+  try {
+    const user = await User.findOne({ login_name });
+
+    if (!user) {
+      return res.status(400).send('Login failed: User not found');
+    }
+
+    // Store user details in the session
+    req.session.user = { _id: user._id, first_name: user.first_name };
+    console.log('User logged in:', req.session.user); // Log session details
+    return res.status(200).json(req.session.user);
+    //return res.status(200).json(user);
+  } catch (err) {
+    console.error('Error during login:', err);
+    return res.status(500).send('Internal Server Error');
+  }
+});
+
+app.post('/admin/logout', (req, res) => {
+  if (req.session.user) {
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Error during logout:', err);
+        return res.status(500).send('Failed to log out');
+      }
+      return res.status(200).send('Logged out successfully');
+    });
+  } else {
+    return res.status(400).send('User is not logged in');
+  }
+});
+
+// Middleware to check if the user is logged in for protected routes
+app.use((req, res, next) => {
+  if (!req.session.user && !['/admin/login', '/admin/logout'].includes(req.path)) {
+    return res.status(401).send('Unauthorized');
+  }
+  next();
+});
+
+
 
 const server = app.listen(3000, function () {
   const port = server.address().port;
