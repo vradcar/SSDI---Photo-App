@@ -1,10 +1,9 @@
 import React from 'react';
 import {
-    Button, TextField,
-    ImageList, ImageListItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Typography
+  Typography, Card, CardContent, Grid, Paper, Link
 } from '@mui/material';
+import axios from 'axios';  // Moved axios import above
 import './userPhotos.css';
-import axios from 'axios';
 
 /**
  * Define UserPhotos, a React component for displaying user photos and their comments
