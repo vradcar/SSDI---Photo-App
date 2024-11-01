@@ -35,43 +35,64 @@ const mongoose = require("mongoose");
 mongoose.Promise = require("bluebird");
 
 const async = require("async");
+
+const fs = require("fs");
 const express = require("express");
+const app = express();
 const session = require("express-session");
 const bodyParser = require("body-parser");
 const multer = require("multer");
-const app = express();
 
+const processFormBody = multer({ storage: multer.memoryStorage() }).single('uploadedphoto');
+
+app.use(session({ secret: "secretKey", resave: false, saveUninitialized: false }));
+app.use(bodyParser.json());
+
+// Load the Mongoose schema for User, Photo, and SchemaInfo
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
 const SchemaInfo = require("./schema/schemaInfo.js");
 
 mongoose.set("strictQuery", false);
-mongoose.connect("mongodb://127.0.0.1/project7", {
+mongoose.connect("mongodb://127.0.0.1/project6", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
+// We have the express static module
+// (http://expressjs.com/en/starter/static-files.html) do all the work for us.
 app.use(express.static(__dirname));
-app.use(session({ secret: "secretKey", resave: false, saveUninitialized: false }));
-app.use(bodyParser.json());
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.fieldname + "-" + Date.now());
-  },
-});
-const upload = multer({ storage: storage });
+function getSessionUserID(request) {
+  return request.session.user_id;
+}
+
+function hasNoUserSession(request, response) {
+  if (!getSessionUserID(request)) {
+    response.status(401).send();
+    return true;
+  }
+  return false;
+}
 
 app.get("/", function (request, response) {
   response.send("Simple web server of files from " + __dirname);
 });
 
+/**
+ * Use express to handle argument passing in the URL. This .get will cause
+ * express to accept URLs with /test/<something> and return the something in
+ * request.params.p1.
+ * 
+ * If implemented, the get will work as follows:
+ * /test        - Returns the SchemaInfo object of the database in JSON format.
+ *                This is good for testing connectivity with MongoDB.
+ * /test/info   - Same as /test.
+ * /test/counts - Returns an object with the counts of the different collections
+ *                in JSON format.
+ */
 app.get("/test/:p1", function (request, response) {
   const param = request.params.p1 || "info";
-
   if (param === "info") {
     SchemaInfo.find({}, function (err, info) {
       if (err) {
@@ -80,11 +101,9 @@ app.get("/test/:p1", function (request, response) {
         return;
       }
       if (info.length === 0) {
-        response.status(500).send("Missing SchemaInfo");
+        response.status(400).send("Missing SchemaInfo");
         return;
       }
-
-      console.log("SchemaInfo", info[0]);
       response.end(JSON.stringify(info[0]));
     });
   } else if (param === "counts") {
@@ -106,9 +125,7 @@ app.get("/test/:p1", function (request, response) {
           response.status(500).send(JSON.stringify(err));
         } else {
           const obj = {};
-          for (let i = 0; i < collections.length; i++) {
-            obj[collections[i].name] = collections[i].count;
-          }
+          collections.forEach(col => obj[col.name] = col.count);
           response.end(JSON.stringify(obj));
         }
       }
@@ -118,254 +135,230 @@ app.get("/test/:p1", function (request, response) {
   }
 });
 
-app.get("/user/list", function (request, response) {
-  if (!request.session.loggedIn) {
-    response.status(401).send("Unauthorized");
+/**
+ * URL /user - adds a new user
+ */
+app.post("/user", function (request, response) {
+  const { first_name, last_name, location, description, occupation, login_name, password } = request.body;
+
+  if (!first_name || !last_name || !login_name || !password) {
+    const missingFields = ["first_name", "last_name", "login_name", "password"].filter(field => !request.body[field]);
+    console.error("Error in /user: Missing fields", missingFields);
+    response.status(400).send(missingFields.join(", ") + " are required");
     return;
   }
 
-  User.find({}, "_id first_name last_name", function (err, users) {
+  User.exists({ login_name: login_name }, function (err, userExists) {
     if (err) {
-      response.status(500).send(JSON.stringify(err));
-      return;
+      console.error("Error in /user", err);
+      response.status(500).send();
+    } else if (userExists) {
+      response.status(400).send("User already exists");
+    } else {
+      User.create({
+        _id: new mongoose.Types.ObjectId(),
+        first_name,
+        last_name,
+        location,
+        description,
+        occupation,
+        login_name,
+        password
+      })
+      .then(user => {
+        request.session.user_id = user._id;
+        response.end(JSON.stringify(user));
+      })
+      .catch(err1 => {
+        console.error("Error in /user", err1);
+        response.status(500).send();
+      });
     }
-    response.status(200).send(users);
   });
 });
 
-app.get("/user/:id", function (request, response) {
-  const id = request.params.id;
+/**
+ * URL /photos/new - adds a new photo for the current user
+ */
+app.post("/photos/new", function (request, response) {
+  if (hasNoUserSession(request, response)) return;
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    response.status(400).send("Invalid user ID");
-    return;
-  }
-
-  User.findById(id, "-__v", function (err, user) {
-    if (err) {
-      response.status(500).send(JSON.stringify(err));
+  const user_id = getSessionUserID(request);
+  processFormBody(request, response, function (err) {
+    if (err || !request.file) {
+      console.error("Error in /photos/new", err);
+      response.status(400).send("photo required");
       return;
     }
-    if (!user) {
-      response.status(400).send("User not found");
-      return;
-    }
-    response.status(200).send(user);
-  });
-});
-
-app.get("/photosOfUser/:id", function (request, response) {
-  const id = request.params.id;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    response.status(400).send("Invalid user ID");
-    return;
-  }
-
-  Photo.find({ user_id: id }, function (err, photos) {
-    if (err) {
-      response.status(500).send(JSON.stringify(err));
-      return;
-    }
-    if (photos.length === 0) {
-      response.status(400).send("No photos found for this user");
-      return;
-    }
-
-    async.map(
-      photos,
-      function (photo, callback) {
-        const photoObj = photo.toObject();
-        delete photoObj.__v;
-
-        async.map(
-          photoObj.comments,
-          function (comment, cb) {
-            User.findById(comment.user_id, "_id first_name last_name", function (
-              err1,
-              user
-            ) {
-              if (err1) {
-                cb(err1);
-              } else {
-                const commentObj = {
-                  comment: comment.comment,
-                  date_time: comment.date_time,
-                  _id: comment._id,
-                  user: user,
-                };
-                cb(null, commentObj);
-              }
-            });
-          },
-          function (err2, commentsWithUsers) {
-            if (err2) {
-              callback(err2);
-            } else {
-              photoObj.comments = commentsWithUsers;
-              callback(null, photoObj);
-            }
-          }
-        );
-      },
-      function (err3, photosWithComments) {
-        if (err3) {
-          response.status(500).send(JSON.stringify(err3));
-        } else {
-          response.status(200).send(photosWithComments);
-        }
-      }
-    );
-  });
-});
-
-
-// Add comment to a photo
-app.post("/commentsOfPhoto/:photo_id", function (request, response) {
-  if (!request.session.loggedIn) {
-    response.status(401).send("Unauthorized");
-    return;
-  }
-
-  const { comment } = request.body;
-  const photoId = request.params.photo_id;
-  const userId = request.session.user._id;
-
-  if (!comment) {
-    response.status(400).send("Comment text is required");
-    return;
-  }
-
-  Photo.findById(photoId, function (err, photo) {
-    if (err) {
-      response.status(500).send(JSON.stringify(err));
-      return;
-    }
-    if (!photo) {
-      response.status(400).send("Photo not found");
-      return;
-    }
-
-    photo.comments.push({ comment: comment, date_time: new Date(), user_id: userId });
-    photo.save(function (err) {
-      if (err) {
-        response.status(500).send(JSON.stringify(err));
+    const timestamp = new Date().valueOf();
+    const filename = `U${timestamp}${request.file.originalname}`;
+    fs.writeFile(`./images/${filename}`, request.file.buffer, function (err1) {
+      if (err1) {
+        console.error("Error in /photos/new", err1);
+        response.status(400).send("error writing photo");
         return;
       }
-      response.status(200).send("Comment added successfully");
+      Photo.create({
+        _id: new mongoose.Types.ObjectId(),
+        file_name: filename,
+        date_time: new Date(),
+        user_id: mongoose.Types.ObjectId(user_id),
+        comment: []
+      })
+      .then(() => response.end())
+      .catch(err2 => {
+        console.error("Error in /photos/new", err2);
+        response.status(500).send(JSON.stringify(err2));
+      });
     });
   });
 });
 
-// Photo upload endpoint
-app.post("/photos/new", upload.single("photo"), function (request, response) {
-  if (!request.session.loggedIn) {
-    response.status(401).send("Unauthorized");
+/**
+ * URL /commentsOfPhoto/:photo_id - adds a new comment on photo for the current user
+ */
+app.post("/commentsOfPhoto/:photo_id", function (request, response) {
+  if (hasNoUserSession(request, response)) return;
+
+  const { photo_id } = request.params;
+  const user_id = getSessionUserID(request);
+  const comment = request.body.comment || "";
+
+  if (!photo_id || !user_id || !comment) {
+    const missingParams = ["photo_id", "user_id", "comment"].filter(param => !request[param]);
+    response.status(400).send(missingParams.join(", ") + " required");
     return;
   }
 
-  const userId = request.session.user._id;
-  const newPhoto = new Photo({
-    file_name: request.file.filename,
-    date_time: new Date(),
-    user_id: userId,
-    comments: [],
-  });
+  Photo.updateOne(
+    { _id: new mongoose.Types.ObjectId(photo_id) },
+    { $push: {
+        comments: {
+          comment,
+          date_time: new Date(),
+          user_id: new mongoose.Types.ObjectId(user_id),
+          _id: new mongoose.Types.ObjectId()
+        }
+      }
+    },
+    function (err) {
+      if (err) {
+        console.error("Error in /commentsOfPhoto/:photo_id", err);
+        response.status(500).send(JSON.stringify(err));
+      } else {
+        response.end();
+      }
+    }
+  );
+});
 
-  newPhoto.save(function (err) {
+/**
+ * URL /admin/login - Returns user object on successful login
+ */
+app.post("/admin/login", function (request, response) {
+  const { login_name, password } = request.body;
+
+  User.find({ login_name, password }, { __v: 0 }, function (err, user) {
+    if (err) {
+      console.error("Error in /admin/login", err);
+      response.status(500).send(JSON.stringify(err));
+      return;
+    }
+    if (user.length === 0) {
+      response.status(400).send("Invalid login credentials");
+    } else {
+      request.session.user_id = user[0]._id;
+      response.end(JSON.stringify(user[0]));
+    }
+  });
+});
+
+/**
+ * URL /admin/logout - logs out the current user
+ */
+app.post("/admin/logout", function (request, response) {
+  request.session.destroy(function () {
+    response.end();
+  });
+});
+
+/**
+ * URL /user/list - Returns all users
+ */
+app.get("/user/list", function (request, response) {
+  if (hasNoUserSession(request, response)) return;
+
+  User.find({}, { _id: 1, first_name: 1, last_name: 1 }, function (err, users) {
     if (err) {
       response.status(500).send(JSON.stringify(err));
       return;
     }
-    response.status(200).send("Photo uploaded successfully");
+    response.end(JSON.stringify(users));
   });
 });
 
+/**
+ * URL /user/:id - Returns a particular user
+ */
+app.get("/user/:id", function (request, response) {
+  if (hasNoUserSession(request, response)) return;
 
-app.post('/admin/login', async (req, res) => {
-  const { login_name } = req.body;
-
-  // Check if login_name is provided
-  if (!login_name) {
-    return res.status(400).send('Login name is required');
-  }
-
-  try {
-    const user = await User.findOne({ login_name });
-
-    if (!user) {
-      return res.status(400).send('Login failed: User not found');
-    }
-
-    // Store user details in the session
-    req.session.user = { _id: user._id, first_name: user.first_name };
-    console.log('User logged in:', req.session.user); // Log session details
-    //return res.status(200).json(req.session.user);
-    return res.status(200).json(user);
-  } catch (err) {
-    console.error('Error during login:', err);
-    return res.status(500).send('Internal Server Error');
-  }
-});
-
-app.post('/admin/logout', (req, res) => {
-  if (req.session.user) {
-    req.session.destroy(err => {
-      if (err) {
-        console.error('Error during logout:', err);
-        return res.status(500).send('Failed to log out');
+  User.findById(request.params.id, { __v: 0, login_name: 0, password: 0 })
+    .then(user => {
+      if (!user) {
+        response.status(400).send("User not found");
+      } else {
+        response.end(JSON.stringify(user));
       }
-      return res.status(200).send('Logged out successfully');
-    });
-  } else {
-    return res.status(400).send('User is not logged in');
-  }
-});
-
-// Middleware to check if the user is logged in for protected routes
-app.use((req, res, next) => {
-  if (!req.session.user && !['/admin/login', '/admin/logout'].includes(req.path)) {
-    return res.status(401).send('Unauthorized');
-  }
-  next();
-});
-
-
-app.post('/commentsOfPhoto/:photo_id', (req, res) => {
-  const photoId = req.params.photo_id;
-  const { comment, user_id } = req.body;
-
-  if (!req.session.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  const newComment = {
-    comment: comment,
-    date_time: new Date(),
-    user_id: user_id,
-    _id: user_id,
-  };
-
-  Photo.findByIdAndUpdate(
-    photoId,
-    { $push: { comments: newComment } },
-    { new: true, fields: { comments: { $slice: -1 } } } // Return only the new comment
-  )
-    .then((updatedPhoto) => {
-      res.status(200).json(updatedPhoto.comments[updatedPhoto.comments.length - 1]); // Send the new comment only
     })
-    .catch((error) => {
-      console.error('Error adding comment:', error);
-      res.status(500).json({ message: 'Failed to add comment' });
+    .catch(err => {
+      console.error("Error in /user/:id", err.reason);
+      response.status(500).send();
+    });
+});
+
+/**
+ * URL /photosOfUser/:id - Returns the photos of a user along with all comments
+ * on each photo.
+ */
+app.get("/photosOfUser/:id", function (request, response) {
+  if (hasNoUserSession(request, response)) return;
+
+  User.findById(request.params.id)
+    .then(user => {
+      if (!user) {
+        response.status(400).send("User not found");
+        return;
+      }
+      return Photo.aggregate([
+        { $match: { user_id: mongoose.Types.ObjectId(request.params.id) } },
+        { $lookup: { from: "users", localField: "comments.user_id", foreignField: "_id", as: "users" } },
+        {
+          $addFields: {
+            comments: {
+              $map: {
+                input: "$comments",
+                as: "comment",
+                in: {
+                  $mergeObjects: [
+                    "$$comment",
+                    { user: { $arrayElemAt: ["$users", { $indexOfArray: ["$users._id", "$$comment.user_id"] }] } }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        { $project: { users: 0, __v: 0, "comments.user_id": 0, "comments.user.__v": 0 } }
+      ]);
+    })
+    .then(photos => response.end(JSON.stringify(photos || [])))
+    .catch(err => {
+      console.error("Error in /photosOfUser/:id", err);
+      response.status(500).send(JSON.stringify(err));
     });
 });
 
 const server = app.listen(3000, function () {
-  const port = server.address().port;
-  console.log(
-    "Listening at http://localhost:" +
-    port +
-    " exporting the directory " +
-    __dirname
-  );
+  console.log(`Listening at http://localhost:3000 exporting the directory ${__dirname}`);
 });

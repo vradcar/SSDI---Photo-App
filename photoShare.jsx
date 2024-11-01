@@ -1,201 +1,115 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {
-  HashRouter, Route, Switch, Redirect
-} from 'react-router-dom';
-import {
-  Grid, Paper
-} from '@mui/material';
+import { HashRouter, Route, Switch, Redirect } from 'react-router-dom';
+import { Grid, Paper, Container } from '@mui/material';
 import './styles/main.css';
 
-// Import necessary components
 import TopBar from './components/topBar/TopBar';
 import UserDetail from './components/userDetail/userDetail';
-import LoginRegister from './components/loginRegister/loginRegister';
+import UserList from './components/userList/userList';
 import UserPhotos from './components/userPhotos/userPhotos';
-//import PhotoDetail from './components/photoDetail/photoDetail'; 
+import LoginRegister from "./components/loginRegister/loginRegister";
 
 class PhotoShare extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      isAuthenticated: false, // Authentication state
-      user: null, 
+      main_content: undefined,
+      user: undefined
     };
-    this.handleLogin = this.handleLogin.bind(this);
-    this.handleLogout = this.handleLogout.bind(this);
   }
 
-  componentDidMount() {
-    sessionStorage.clear();
-    // Check sessionStorage for existing login session
-    const sessionStatus = sessionStorage.getItem('isAuthenticated');
-    const user = JSON.parse(sessionStorage.getItem('user'));
-    if (sessionStatus === 'true' && user) {
-      this.setState({ isAuthenticated: true, user });
-    }
-  }
+  userIsLoggedIn = () => this.state.user !== undefined;
 
-  // Method to handle login and update authentication state
-  handleLogin(user) { // Accepts `user` parameter from `LoginRegister`
-    this.setState({ isAuthenticated: true, user }, () => {
-      sessionStorage.setItem('isAuthenticated', 'true');
-      sessionStorage.setItem('user', JSON.stringify(user));
-    });
-  }
+  changeMainContent = (main_content) => {
+    this.setState({ main_content });
+  };
 
-  // Method to handle logout and clear session storage
-  handleLogout() {
-    this.setState({ isAuthenticated: false, user: null }, () => {
-      // Clear session storage
-      sessionStorage.removeItem('isAuthenticated');
-      sessionStorage.removeItem('user');
-    });
-    sessionStorage.clear();
-  }
+  changeUser = (user) => {
+    this.setState({ user });
+    if (!user) this.changeMainContent(undefined);
+  };
 
   render() {
-    const { isAuthenticated, user } = this.state;
-
     return (
       <HashRouter>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            {isAuthenticated ? (
+        <div>
+          <Grid container spacing={8}>
+            <Grid item xs={12}>
+              <TopBar main_content={this.state.main_content} user={this.state.user} changeUser={this.changeUser} />
+            </Grid>
+            <div className="main-topbar-buffer" />
+
+            {this.userIsLoggedIn() ? (
+              // Render the main layout with UserList and user content when logged in
               <>
-                <TopBar user={user} onLogout={this.handleLogout} />
-                <Paper elevation={3} style={{ padding: '20px' }}>
-                  <Switch>
-                    <Route 
-                      path="/user/:userId" 
-                      render={(props) => <UserDetail {...props} user={user} />} 
-                    />
-                    <Route path="/photos/:userId" 
-                    render={props => <UserPhotos {...props} />} />
-                    {/* <Route
-                      path="/photo/:photoId"
-                      render={(props) => (
-                        <PhotoDetail {...props} user={user} />
-                      )}
-                    /> */}
-                    <Redirect from="/" to={`/user/${user._id}`} />
-                    
-                  </Switch>
-                </Paper>
+                <Grid item sm={3}>
+                  <Paper className="main-grid-item">
+                    <UserList />
+                  </Paper>
+                </Grid>
+                <Grid item sm={9}>
+                  <Paper className="main-grid-item">
+                    <Switch>
+                      <PrivateRoute
+                        path="/users/:userId"
+                        component={UserDetail}
+                        user={this.state.user}
+                        changeMainContent={this.changeMainContent}
+                        redirectTo="/login-register"
+                      />
+                      <PrivateRoute
+                        path="/photos/:userId"
+                        component={UserPhotos}
+                        user={this.state.user}
+                        changeMainContent={this.changeMainContent}
+                        redirectTo="/login-register"
+                      />
+                      <Route
+                        path="/"
+                        render={() => <Redirect to="/users" />}
+                      />
+                    </Switch>
+                  </Paper>
+                </Grid>
               </>
             ) : (
-              <LoginRegister onLogin={this.handleLogin} />
+              // Center the LoginRegister component when not logged in
+              <Container maxWidth="sm" style={{ marginTop: '10vh', textAlign: 'center' }}>
+                <Paper elevation={3} style={{ padding: '2rem' }}>
+                  <Route
+                    path="/login-register"
+                    render={(props) => <LoginRegister {...props} changeUser={this.changeUser} />}
+                  />
+                  <Route
+                    path="/"
+                    render={() => <Redirect to="/login-register" />}
+                  />
+                </Paper>
+              </Container>
             )}
           </Grid>
-        </Grid>
+        </div>
       </HashRouter>
     );
   }
 }
 
-ReactDOM.render(
-  <PhotoShare />,
-  document.getElementById('photoshareapp'),
+/**
+ * PrivateRoute component to handle authentication-based redirection.
+ * If the user is logged in, it renders the specified component; otherwise, redirects to the login page.
+ */
+const PrivateRoute = ({ component: Component, user, changeMainContent, redirectTo, ...rest }) => (
+  <Route
+    {...rest}
+    render={(props) =>
+      user ? (
+        <Component {...props} changeMainContent={changeMainContent} />
+      ) : (
+        <Redirect to={redirectTo} />
+      )
+    }
+  />
 );
 
-
-
-
-// import React from 'react';
-// import ReactDOM from 'react-dom';
-// import {
-//   HashRouter, Route, Switch, Redirect
-// } from 'react-router-dom';
-// import {
-//   Grid, Typography, Paper, Button // Import Button here
-// } from '@mui/material';
-// import './styles/main.css';
-
-// // Import necessary components
-// import TopBar from './components/topBar/TopBar';
-// import UserDetail from './components/userDetail/userDetail';
-// import UserList from './components/userList/userList';
-// import UserPhotos from './components/userPhotos/userPhotos';
-// import LoginRegister from './components/loginRegister/loginRegister';
-
-// class PhotoShare extends React.Component {
-//   constructor(props) {
-//     super(props);
-//     this.state = {
-//       isAuthenticated: false,// Authentication state
-//       user: null, 
-//     };
-//     this.handleLogin = this.handleLogin.bind(this);
-//     this.handleLogout = this.handleLogout.bind(this);
-//   }
-
-//   componentDidMount() {
-//     // Check sessionStorage for existing login session
-//     const sessionStatus = sessionStorage.getItem('isAuthenticated');
-//     const user = JSON.parse(sessionStorage.getItem('user'));
-//     if (sessionStatus === 'true' && user) {
-//       this.setState({ isAuthenticated: true, user });
-//     }
-//   }
-
-//   // Method to handle login and update authentication state
-  
-//   handleLogin(user) { // Accepts `user` parameter from `LoginRegister`
-//     this.setState({ isAuthenticated: true, user }, () => {
-//       sessionStorage.setItem('isAuthenticated', 'true');
-//       sessionStorage.setItem('user', JSON.stringify(user));
-//     });
-//   }
-//   // Method to handle logout and clear session storage
-//   handleLogout() {
-//     this.setState({ isAuthenticated: false, user:null }, () => {
-//       // Clear session storage
-//       sessionStorage.removeItem('isAuthenticated');
-//       sessionStorage.removeItem('user');
-//     });
-//   }
-
-  
-// render() {
-//   const { isAuthenticated, user } = this.state;
-
-//   return (
-
-//     <HashRouter>
-//         <Grid container spacing={2}>
-//           <Grid item xs={12}>
-//             {isAuthenticated ? (
-//               <>
-//                 <TopBar user={user} onLogout={this.handleLogout} />
-//                 <Paper elevation={3} style={{ padding: '20px' }}>
-//                   <Switch>
-//                     <Route 
-//                       path="/user/:userId" 
-//                       render={(props) => <UserDetail {...props} user={user} />} 
-//                     />
-//                     <Redirect from="/" to={`/user/${user._id}`} /> {/* Default route */}
-//                   </Switch>
-//                 </Paper>
-//               </>
-//             ) : (
-//               <LoginRegister onLogin={this.handleLogin} />
-//             )}
-//           </Grid>
-//         </Grid>
-//       </HashRouter>
-
-    
-//   );
-// }}
-
-
-
-// ReactDOM.render(
-//   <PhotoShare />,
-//   document.getElementById('photoshareapp'),
-// );
-
-
-
-
-
+ReactDOM.render(<PhotoShare />, document.getElementById('photoshareapp'));
