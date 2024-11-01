@@ -18,35 +18,38 @@ class UserDetail extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      user: null,  // To store the fetched user details
+      user: props.user,  // To store the fetched user details
     };
     this.handleViewImageClick = this.handleViewImageClick.bind(this);
   }
 
-  componentDidMount() {
-    this.fetchUserData();
-  }
+  // componentDidMount() {
+  //   this.fetchUserData();
+  // }
 
   componentDidUpdate(prevProps) {
     // Re-fetch user details if the route userId changes
-    if (this.props.match.params.userId !== prevProps.match.params.userId) {
-      this.fetchUserData();
+    // if (this.props.match.params.userId !== prevProps.match.params.userId) {
+    //   this.fetchUserData();
+    // }
+    if (this.props.user !== prevProps.user) {
+      this.setState({ user: this.props.user });
     }
   }
 
-  fetchUserData = () => {
-    const userId = this.props.match.params.userId; // Extract userId from route params
-
-    // Fetch user details from the server using axios
-    axios.get(`/user/${userId}`)
-      .then((response) => {
-        this.setState({ user: response.data }); // Set user details in state
-      })
-      .catch((error) => {
-        console.error('Error fetching user details:', error);
-        // Optionally handle error
-      });
-  };
+  // fetchUserData = () => {
+  // //  const userId = this.props.match.params.userId; // Extract userId from route params
+  //   const userId = this.props.userId;
+  //   // Fetch user details from the server using axios
+  //   axios.get(`/user/${userId}`)
+  //     .then((response) => {
+  //       this.setState({ user: response.data }); // Set user details in state
+  //     })
+  //     .catch((error) => {
+  //       console.error('Error fetching user details:', error);
+  //       // Optionally handle error
+  //     });
+  // };
 
   handleViewImageClick() {
     const { history } = this.props;

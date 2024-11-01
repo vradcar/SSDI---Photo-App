@@ -15,6 +15,7 @@ class UserPhotos extends React.Component {
       photos: [],
       user: null, // To store user details
       loading: true,
+      error: null, 
     };
   }
 
@@ -31,7 +32,7 @@ class UserPhotos extends React.Component {
 
   fetchUserData = () => {
     const userId = this.props.match.params.userId;
-    this.setState({ loading: true });
+    this.setState({ loading: true, error: null });
 
     // Fetch user data and photos concurrently using axios
     Promise.all([
@@ -48,17 +49,28 @@ class UserPhotos extends React.Component {
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
-        this.setState({ loading: false });
+        this.setState({
+          loading: false,
+          error: 'An error occurred while fetching user data. Please try again later.',
+        });
       });
   };
 
   render() {
-    const { photos, user, loading } = this.state;
+    const { photos, user, loading, error } = this.state;
 
     if (loading) {
       return (
         <Typography variant="h6" style={{ textAlign: 'center', margin: '20px' }}>
           Loading photos...
+        </Typography>
+      );
+    }
+
+    if (error) {
+      return (
+        <Typography variant="h6" style={{ textAlign: 'center', margin: '20px', color: 'red' }}>
+          {error}
         </Typography>
       );
     }

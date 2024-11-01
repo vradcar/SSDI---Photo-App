@@ -300,8 +300,8 @@ app.post('/admin/login', async (req, res) => {
     // Store user details in the session
     req.session.user = { _id: user._id, first_name: user.first_name };
     console.log('User logged in:', req.session.user); // Log session details
-    return res.status(200).json(req.session.user);
-    //return res.status(200).json(user);
+    //return res.status(200).json(req.session.user);
+    return res.status(200).json(user);
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).send('Internal Server Error');

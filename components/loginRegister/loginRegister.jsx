@@ -23,19 +23,31 @@ class LoginRegister extends React.Component {
     this.setState({ [name]: value });
   }
 
+  // handleLogin() {
+  //   const { email, password } = this.state;
+
+  //   axios.post('/admin/login', { login_name: email, password }) // Adjust according to your API
+  //     .then((response) => {
+  //       const user = response.data;
+  //       this.props.onLogin(user);
+  //     })
+  //     .catch(() => {
+  //       this.setState({ snackbarOpen: true, snackbarMessage: 'Invalid email or password.' });
+  //     });
+  // }
+
   handleLogin() {
     const { email, password } = this.state;
-
-    axios.post('/admin/login', { login_name: email, password }) // Adjust according to your API
+  
+    axios.post('/admin/login', { login_name: email, password })
       .then((response) => {
-        //const user = response.data;
-        this.props.onLogin();
+        const user = response.data;
+        this.props.onLogin(user); // Pass the `user` object correctly
       })
       .catch(() => {
         this.setState({ snackbarOpen: true, snackbarMessage: 'Invalid email or password.' });
       });
   }
-
   handleSnackbarClose() {
     this.setState({ snackbarOpen: false });
   }
