@@ -1,87 +1,146 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography } from '@mui/material';
-import { withRouter } from 'react-router-dom';
-import axios from 'axios'; // Corrected import order
+import {
+    AppBar, Toolbar, Typography, Button, Divider, Box, Alert, Snackbar
+} from '@mui/material';
 import './TopBar.css';
+import axios from 'axios';
 
+/**
+ * Define TopBar, a React componment of project #5
+ */
 class TopBar extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      user: null,
-      isPhotoView: false,
-      version: '',  // To store the version number
+    constructor(props) {
+        super(props);
+        this.state = {
+            app_info: undefined,
+            photo_upload_show: false,
+            photo_upload_error: false,
+            photo_upload_success: false
+        };
+        this.handleLogout = this.handleLogout.bind(this);
+        this.handleNewPhoto = this.handleNewPhoto.bind(this);
+    }
+    componentDidMount() {
+        this.handleAppInfoChange();
+    }
+    handleLogout = () => {
+        axios.post("/admin/logout")
+            .then(() =>
+            {
+                this.props.changeUser(undefined);
+            })
+            .catch( error => {
+                this.props.changeUser(undefined);
+                console.log(error);
+            });
     };
-  }
 
-  componentDidMount() {
-    this.updateContext();
-    this.fetchVersionNumber();
-  }
+    handleNewPhoto = (e) => {
+        e.preventDefault();
+        if (this.uploadInput.files.length > 0) {
+            const domForm = new FormData();
+            domForm.append('uploadedphoto', this.uploadInput.files[0]);
+            axios.post("/photos/new", domForm)
+                .then(() => {
+                    this.setState({
+                        photo_upload_show: true,
+                        photo_upload_error: false,
+                        photo_upload_success: true
+                    });
+                })
+                .catch(error => {
+                    this.setState({
+                        photo_upload_show: true,
+                        photo_upload_error: true,
+                        photo_upload_success: false
+                    });
+                    console.log(error);
+                });
+        }
+    };
 
-  componentDidUpdate(prevProps) {
-    const { location } = this.props;
-    if (location !== prevProps.location) {
-      this.updateContext();
-    }
-  }
-
-  updateContext() {
-    const path = this.props.location.pathname;
-    let userId;
-
-    if (path.startsWith('/users/')) {
-      userId = path.split('/')[2];
-    } else if (path.startsWith('/photos/')) {
-      userId = path.split('/')[2];
-    }
-
-    if (userId) {
-      // Use axios to fetch user data
-      axios.get(`/user/${userId}`)
-      .then((response) => {
-        const userData = response.data;
-        this.setState({ 
-          user: userData, 
-          isPhotoView: path.startsWith('/photos/') 
+    handleClose = () => {
+        this.setState({
+            photo_upload_show: false,
+            photo_upload_error: false,
+            photo_upload_success: false
         });
-      })
-      .catch((error) => {
-        console.error('Error fetching user details:', error);
-        this.setState({ user: null, isPhotoView: false });
-      });
-    } else {
-      this.setState({ user: null, isPhotoView: false });
-    }
-  }
+    };
 
-  fetchVersionNumber() {
-    this.setState({ version: 1 });
-    // Fetch version number from the /test/info API if needed
-  }
+    handleAppInfoChange(){
+        const app_info = this.state.app_info;
+        if (app_info === undefined){
+            axios.get("/test/info")
+                .then((response) =>
+                {
+                    this.setState({
+                        app_info: response.data
+                    });
+                });
+        }
+    }
 
   render() {
-    const { user, isPhotoView, version } = this.state;
-    const displayText = user
-      ? `${isPhotoView ? 'Photos of' : 'Details of'} ${user.first_name} ${user.last_name}`
-      : 'Photo Sharing App';
-
-    return (
-      <AppBar className="topbar-appBar" position="fixed">
-        <Toolbar className="topbar-toolbar">
-          <Typography variant="h6" className="topbar-title" style={{ flexGrow: 1, textAlign: 'left' }}>
-            Group 6 - Project 6 - Sprint 2
-          </Typography>
-          <Typography variant="h6" className="topbar-content">
-            {displayText}
-          </Typography>
-          <Typography variant="body1" className="topbar-version" style={{ marginLeft: '20px' }}>
-            Version: {version}
-          </Typography>
+    return this.state.app_info ? (
+      <AppBar className="topbar-appBar" position="absolute">
+        <Toolbar>
+            <Typography variant="h5" component="div" sx={{ flexGrow: 0 }} color="inherit">
+                {
+                this.props.user ?
+                    (
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                width: 'fit-content',
+                                '& svg': {
+                                    m: 1.5,
+                                },
+                                '& hr': {
+                                    mx: 0.5,
+                                },
+                            }}
+                        >
+                            <span>{"Hi " + this.props.user.first_name}</span>
+                            <Divider orientation="vertical" flexItem/>
+                            <Button variant="contained" onClick={this.handleLogout}>Logout</Button>
+                            <Divider orientation="vertical" flexItem/>
+                            <Button
+                                component = "label"
+                                variant = "contained"
+                            >
+                                Add Photo
+                                <input
+                                    type="file"
+                                    accept = "image/*"
+                                    hidden
+                                    ref={(domFileRef) => { this.uploadInput = domFileRef; }}
+                                    onChange={this.handleNewPhoto}
+                                />
+                            </Button>
+                            <Snackbar anchorOrigin={{vertical: 'top', horizontal: 'left'}} open={this.state.photo_upload_show} autoHideDuration={6000} onClose={this.handleClose}>
+                                {
+                                    this.state.photo_upload_success ?
+                                        <Alert onClose={this.handleClose} severity="success" sx={{ width: '100%' }}>Photo Uploaded</Alert> :
+                                        this.state.photo_upload_error ?
+                                            <Alert onClose={this.handleClose} severity="error" sx={{ width: '100%' }}>Error Uploading Photo</Alert> :
+                                            <div/>
+                                }
+                            </Snackbar>
+                        </Box>
+                    )
+                :
+                    ("Please Login")
+                }
+            </Typography>
+            <Typography variant="h5" component="div" sx={{ flexGrow: 1 }} color="inherit" align="center">{this.props.main_content}</Typography>
+            <Typography variant="h5" component="div" sx={{ flexGrow: 0 }} color="inherit">Version: {this.state.app_info.version}</Typography>
         </Toolbar>
       </AppBar>
+    ) : (
+        <div/>
     );
   }
 }
 
-export default withRouter(TopBar);
+export default TopBar;
