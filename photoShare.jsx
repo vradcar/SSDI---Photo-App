@@ -102,14 +102,12 @@ class PhotoShare extends React.Component {
 const PrivateRoute = ({ component: Component, user, changeMainContent, redirectTo, ...rest }) => (
   <Route
     {...rest}
-    render={(props) =>
-      user ? (
+    render={(props) => user ? (
         <Component {...props} changeMainContent={changeMainContent} />
       ) : (
         <Redirect to={redirectTo} />
       )
-    }
-  />
+    } />
 );
 
 ReactDOM.render(<PhotoShare />, document.getElementById('photoshareapp'));

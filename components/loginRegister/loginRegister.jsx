@@ -9,7 +9,6 @@ import {
     Container,
     AppBar,
     Toolbar,
-    IconButton
 } from '@mui/material';
 import axios from 'axios';
 import './loginRegister.css';

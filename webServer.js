@@ -303,7 +303,13 @@ app.get("/user/list", function (request, response) {
 app.get("/user/:id", function (request, response) {
   if (hasNoUserSession(request, response)) return;
 
-  User.findById(request.params.id, { __v: 0, login_name: 0, password: 0 })
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
+    return response.status(400).send("Invalid user ID format");
+  }
+
+  User.findById(request.params.id, { __v: 0, login_name: 0, password: 0})
+    .select('-createdAt-updatedAt')
     .then(user => {
       if (!user) {
         response.status(400).send("User not found");
@@ -318,11 +324,14 @@ app.get("/user/:id", function (request, response) {
 });
 
 /**
- * URL /photosOfUser/:id - Returns the photos of a user along with all comments
- * on each photo.
+ * URL /photosOfUser/:id - Returns the photos of a user along with all comments on each photo.
  */
 app.get("/photosOfUser/:id", function (request, response) {
   if (hasNoUserSession(request, response)) return;
+
+  if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
+    return response.status(400).send("Invalid user ID format");
+  }
 
   User.findById(request.params.id)
     .then(user => {
@@ -332,7 +341,14 @@ app.get("/photosOfUser/:id", function (request, response) {
       }
       return Photo.aggregate([
         { $match: { user_id: mongoose.Types.ObjectId(request.params.id) } },
-        { $lookup: { from: "users", localField: "comments.user_id", foreignField: "_id", as: "users" } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "comments.user_id",
+            foreignField: "_id",
+            as: "users"
+          }
+        },
         {
           $addFields: {
             comments: {
@@ -342,14 +358,43 @@ app.get("/photosOfUser/:id", function (request, response) {
                 in: {
                   $mergeObjects: [
                     "$$comment",
-                    { user: { $arrayElemAt: ["$users", { $indexOfArray: ["$users._id", "$$comment.user_id"] }] } }
+                    {
+                      user: {
+                        $arrayElemAt: [
+                          {
+                            $map: {
+                              input: {
+                                $filter: {
+                                  input: "$users",
+                                  as: "user",
+                                  cond: { $eq: ["$$user._id", "$$comment.user_id"] }
+                                }
+                              },
+                              as: "filteredUser",
+                              in: {
+                                _id: "$$filteredUser._id",
+                                first_name: "$$filteredUser.first_name",
+                                last_name: "$$filteredUser.last_name"
+                              }
+                            }
+                          },
+                          0
+                        ]
+                      }
+                    }
                   ]
                 }
               }
             }
           }
         },
-        { $project: { users: 0, __v: 0, "comments.user_id": 0, "comments.user.__v": 0 } }
+        {
+          $project: {
+            users: 0,
+            __v: 0,
+            "comments.user_id": 0
+          }
+        }
       ]);
     })
     .then(photos => response.end(JSON.stringify(photos || [])))
@@ -358,6 +403,7 @@ app.get("/photosOfUser/:id", function (request, response) {
       response.status(500).send(JSON.stringify(err));
     });
 });
+
 
 const server = app.listen(3000, function () {
   console.log(`Listening at http://localhost:3000 exporting the directory ${__dirname}`);
