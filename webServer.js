@@ -331,6 +331,34 @@ app.use((req, res, next) => {
 });
 
 
+app.post('/commentsOfPhoto/:photo_id', (req, res) => {
+  const photoId = req.params.photo_id;
+  const { comment, user_id } = req.body;
+
+  if (!req.session.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const newComment = {
+    comment: comment,
+    date_time: new Date(),
+    user_id: user_id,
+    _id: user_id,
+  };
+
+  Photo.findByIdAndUpdate(
+    photoId,
+    { $push: { comments: newComment } },
+    { new: true, fields: { comments: { $slice: -1 } } } // Return only the new comment
+  )
+    .then((updatedPhoto) => {
+      res.status(200).json(updatedPhoto.comments[updatedPhoto.comments.length - 1]); // Send the new comment only
+    })
+    .catch((error) => {
+      console.error('Error adding comment:', error);
+      res.status(500).json({ message: 'Failed to add comment' });
+    });
+});
 
 const server = app.listen(3000, function () {
   const port = server.address().port;

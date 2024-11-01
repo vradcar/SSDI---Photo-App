@@ -13,6 +13,7 @@ import TopBar from './components/topBar/TopBar';
 import UserDetail from './components/userDetail/userDetail';
 import LoginRegister from './components/loginRegister/loginRegister';
 import UserPhotos from './components/userPhotos/userPhotos';
+//import PhotoDetail from './components/photoDetail/photoDetail'; 
 
 class PhotoShare extends React.Component {
   constructor(props) {
@@ -71,6 +72,12 @@ class PhotoShare extends React.Component {
                     />
                     <Route path="/photos/:userId" 
                     render={props => <UserPhotos {...props} />} />
+                    {/* <Route
+                      path="/photo/:photoId"
+                      render={(props) => (
+                        <PhotoDetail {...props} user={user} />
+                      )}
+                    /> */}
                     <Redirect from="/" to={`/user/${user._id}`} />
                     
                   </Switch>
