@@ -1,0 +1,27 @@
+.comment {
+    margin-bottom: 15px; /* Space between comments */
+    padding: 10px; /* Padding for better spacing */
+}
+
+.comment-user {
+    font-weight: bold; /* Bold username */
+    color: #1a0dab; /* Blue color for usernames */
+    cursor: pointer; /* Indicate link */
+}
+
+.username-link {
+    text-decoration: none; /* Remove underline from links */
+}
+
+.comment-text {
+    margin-top: 5px; /* Space above comment text */
+    color: #333; /* Dark color for comment text */
+}
+
+.comment-footer {
+    display: flex; /* Use flexbox for footer layout */
+    justify-content: space-between; /* Space between time and likes */
+    font-size: 0.8em; /* Smaller font for footer */
+    color: #888; /* Gray color for footer text */
+    margin-top: 5px; /* Space above footer */
+}

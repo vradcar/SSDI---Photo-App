@@ -1,16 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {
-  HashRouter, Route, Switch
-} from 'react-router-dom';
-import {
-  Grid, Paper
-} from '@mui/material';
+import { HashRouter, Route, Switch, Redirect } from 'react-router-dom';
+import { Grid, Paper, Container } from '@mui/material';
 import './styles/main.css';
 
-import {Redirect} from "react-router";
-
-// import necessary components
 import TopBar from './components/topBar/TopBar';
 import UserDetail from './components/userDetail/userDetail';
 import UserList from './components/userList/userList';
@@ -24,77 +17,99 @@ class PhotoShare extends React.Component {
       main_content: undefined,
       user: undefined
     };
-    this.changeMainContent = this.changeMainContent.bind(this);
-    this.changeUser = this.changeUser.bind(this);
   }
 
-  userIsLoggedIn(){
-    return this.state.user !== undefined;
-  }
+  userIsLoggedIn = () => this.state.user !== undefined;
+
   changeMainContent = (main_content) => {
-    this.setState({ main_content: main_content });
+    this.setState({ main_content });
   };
 
   changeUser = (user) => {
-    this.setState({user: user});
-    if (user === undefined) this.changeMainContent(undefined);
+    this.setState({ user });
+    if (!user) this.changeMainContent(undefined);
   };
 
   render() {
     return (
       <HashRouter>
-      <div>
-      <Grid container spacing={8}>
-        <Grid item xs={12}>
-          <TopBar main_content={this.state.main_content} user={this.state.user} changeUser={this.changeUser}/>
-        </Grid>
-        <div className="main-topbar-buffer"/>
-        <Grid item sm={3}>
-          <Paper className="main-grid-item">
-            {
-              this.userIsLoggedIn() ? <UserList/> : <div></div>
-            }
-          </Paper>
-        </Grid>
-        <Grid item sm={9}>
-          <Paper className="main-grid-item">
-            <Switch>
-              {
-                this.userIsLoggedIn() ?
-                    <Route path="/users/:userId" render={ props => <UserDetail {...props} changeMainContent={this.changeMainContent}/> }/>
-                    :
-                    <Redirect path="/users/:userId" to="/login-register" />
-              }
-              {
-                this.userIsLoggedIn() ?
-                    <Route path="/photos/:userId" render ={ props => <UserPhotos {...props} changeMainContent={this.changeMainContent}/> }/>
-                    :
-                    <Redirect path="/photos/:userId" to="/login-register" />
-              }
-              {
-                this.userIsLoggedIn() ?
-                    <Route path="/" render={() => (<div/>)}/>
-                    :
-                    <Route path="/login-register" render ={ props => <LoginRegister {...props} changeUser={this.changeUser}/> } />
-              }
-               {
-                this.userIsLoggedIn() ?
-                    <Route path="/" render={() => (<div/>)}/>
-                    :
-                    <Route path="/" render ={ props => <LoginRegister {...props} changeUser={this.changeUser}/> } />
-              }
+        <div>
+          <Grid container spacing={8}>
+            <Grid item xs={12}>
+              <TopBar main_content={this.state.main_content} user={this.state.user} changeUser={this.changeUser} />
+            </Grid>
+            <div className="main-topbar-buffer" />
 
-            </Switch>
-          </Paper>
-        </Grid>
-      </Grid>
-      </div>
+            {this.userIsLoggedIn() ? (
+              // Render the main layout with UserList and user content when logged in
+              <>
+                <Grid item sm={3}>
+                  <Paper className="main-grid-item">
+                    <UserList />
+                  </Paper>
+                </Grid>
+                <Grid item sm={9}>
+                  <Paper className="main-grid-item">
+                    <Switch>
+                      <PrivateRoute
+                        path="/users/:userId"
+                        component={UserDetail}
+                        user={this.state.user}
+                        changeMainContent={this.changeMainContent}
+                        redirectTo="/login-register"
+                      />
+                      <PrivateRoute
+                        path="/photos/:userId"
+                        component={UserPhotos}
+                        user={this.state.user}
+                        changeMainContent={this.changeMainContent}
+                        redirectTo="/login-register"
+                      />
+                      <Route
+                        path="/"
+                        render={() => <Redirect to="/users" />}
+                      />
+                    </Switch>
+                  </Paper>
+                </Grid>
+              </>
+            ) : (
+              // Center the LoginRegister component when not logged in
+              <Container maxWidth="sm" style={{ marginTop: '10vh', textAlign: 'center' }}>
+                <Paper elevation={3} style={{ padding: '2rem' }}>
+                  <Route
+                    path="/login-register"
+                    render={(props) => <LoginRegister {...props} changeUser={this.changeUser} />}
+                  />
+                  <Route
+                    path="/"
+                    render={() => <Redirect to="/login-register" />}
+                  />
+                </Paper>
+              </Container>
+            )}
+          </Grid>
+        </div>
       </HashRouter>
     );
   }
 }
 
-ReactDOM.render(
-  <PhotoShare/>,
-  document.getElementById('photoshareapp')
+/**
+ * PrivateRoute component to handle authentication-based redirection.
+ * If the user is logged in, it renders the specified component; otherwise, redirects to the login page.
+ */
+const PrivateRoute = ({ component: Component, user, changeMainContent, redirectTo, ...rest }) => (
+  <Route
+    {...rest}
+    render={(props) =>
+      user ? (
+        <Component {...props} changeMainContent={changeMainContent} />
+      ) : (
+        <Redirect to={redirectTo} />
+      )
+    }
+  />
 );
+
+ReactDOM.render(<PhotoShare />, document.getElementById('photoshareapp'));

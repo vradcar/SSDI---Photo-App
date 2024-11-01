@@ -4,7 +4,12 @@ import {
     Box,
     TextField,
     Alert,
-    Typography
+    Typography,
+    Paper,
+    Container,
+    AppBar,
+    Toolbar,
+    IconButton
 } from '@mui/material';
 import axios from 'axios';
 import './loginRegister.css';
@@ -26,7 +31,7 @@ class LoginRegister extends React.Component {
             showLoginError: false,
             showRegistrationError: false,
             showRegistrationSuccess: false,
-            isRegistering: false, // Toggle state for login/register view
+            isRegistering: false,
         };
         this.handleLogin = this.handleLogin.bind(this);
         this.handleRegister = this.handleRegister.bind(this);
@@ -35,7 +40,6 @@ class LoginRegister extends React.Component {
     }
 
     toggleForm() {
-        // Toggle between login and register views
         this.setState((prevState) => ({
             isRegistering: !prevState.isRegistering,
             showLoginError: false,
@@ -69,7 +73,7 @@ class LoginRegister extends React.Component {
         })
         .then((response) => {
             this.setState({ showRegistrationSuccess: true, showRegistrationError: false });
-            this.toggleForm();  // Return to login after successful registration
+            this.toggleForm();
         })
         .catch((error) => {
             this.setState({ showRegistrationError: true });
@@ -85,42 +89,51 @@ class LoginRegister extends React.Component {
 
     render() {
         return (
-            <Box component="form" autoComplete="off">
-                {this.state.isRegistering ? (
-                    // Registration Form
-                    <div>
-                        {this.state.showRegistrationError && <Alert severity="error">Registration Failed</Alert>}
-                        {this.state.showRegistrationSuccess && <Alert severity="success">Registration Succeeded</Alert>}
-                        <TextField id="first_name" label="First Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} />
-                        <TextField id="last_name" label="Last Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} />
-                        <TextField id="location" label="Location" variant="outlined" fullWidth margin="normal" onChange={this.handleChange} />
-                        <TextField id="description" label="Description" variant="outlined" fullWidth margin="normal" multiline rows={4} onChange={this.handleChange} />
-                        <TextField id="occupation" label="Occupation" variant="outlined" fullWidth margin="normal" onChange={this.handleChange} />
-                        <TextField id="login_name" label="Login Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} />
-                        <TextField id="password" label="Password" variant="outlined" fullWidth margin="normal" type="password" required onChange={this.handleChange} />
-                        <TextField id="password_repeat" label="Repeat Password" variant="outlined" fullWidth margin="normal" type="password" required onChange={this.handleChange} />
-                        <Box mt={2}>
-                            <Button variant="contained" onClick={this.handleRegister}>Register Me</Button>
-                        </Box>
-                        <Typography mt={2}>
-                            Already have an account? <Button variant="text" onClick={this.toggleForm}>Login here</Button>
+            <Container maxWidth="xs" style={{ marginTop: '10vh', backgroundColor: '#ffffff' }}>
+                <AppBar position="static" style={{ backgroundColor: '#ffffff' }}>
+                    <Toolbar>
+                        <Typography variant="h6" style={{ color: '#000000', fontWeight: 'bold' }}>
+                            PhotoShare
                         </Typography>
-                    </div>
-                ) : (
-                    // Login Form
-                    <div>
-                        {this.state.showLoginError && <Alert severity="error">Login Failed</Alert>}
-                        <TextField id="login_name" label="Login Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} />
-                        <TextField id="password" label="Password" variant="outlined" fullWidth margin="normal" type="password" required onChange={this.handleChange} />
-                        <Box mt={2}>
-                            <Button type="button" variant="contained" onClick={this.handleLogin}>Login</Button>
-                        </Box>
-                        <Typography mt={2}>
-                            Don't have an account? <Button variant="text" onClick={this.toggleForm}>Register here</Button>
-                        </Typography>
-                    </div>
-                )}
-            </Box>
+                    </Toolbar>
+                </AppBar>
+                <Paper elevation={3} style={{ padding: '2rem', borderRadius: '10px', marginTop: '20px' }}>
+                    <Box component="form" autoComplete="off">
+                        {this.state.isRegistering ? (
+                            <div>
+                                {this.state.showRegistrationError && <Alert severity="error">Registration Failed</Alert>}
+                                {this.state.showRegistrationSuccess && <Alert severity="success">Registration Succeeded</Alert>}
+                                <TextField id="first_name" label="First Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="last_name" label="Last Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="location" label="Location" variant="outlined" fullWidth margin="normal" onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="description" label="Description" variant="outlined" fullWidth margin="normal" multiline rows={4} onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="occupation" label="Occupation" variant="outlined" fullWidth margin="normal" onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="login_name" label="Login Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="password" label="Password" variant="outlined" fullWidth margin="normal" type="password" required onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="password_repeat" label="Repeat Password" variant="outlined" fullWidth margin="normal" type="password" required onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <Box mt={2}>
+                                    <Button variant="contained" onClick={this.handleRegister} style={{ borderRadius: '5px', backgroundColor: '#3897f0', color: '#ffffff' }}>Register Me</Button>
+                                </Box>
+                                <Typography mt={2} style={{ textAlign: 'center' }}>
+                                    Already have an account? <Button variant="text" onClick={this.toggleForm} style={{ color: '#3897f0' }}>Login here</Button>
+                                </Typography>
+                            </div>
+                        ) : (
+                            <div>
+                                {this.state.showLoginError && <Alert severity="error">Login Failed</Alert>}
+                                <TextField id="login_name" label="Login Name" variant="outlined" fullWidth margin="normal" required onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <TextField id="password" label="Password" variant="outlined" fullWidth margin="normal" type="password" required onChange={this.handleChange} style={{ borderRadius: '5px' }} />
+                                <Box mt={2}>
+                                    <Button type="button" variant="contained" onClick={this.handleLogin} style={{ borderRadius: '5px', backgroundColor: '#3897f0', color: '#ffffff' }}>Login</Button>
+                                </Box>
+                                <Typography mt={2} style={{ textAlign: 'center' }}>
+                                    Don't have an account? <Button variant="text" onClick={this.toggleForm} style={{ color: '#3897f0' }}>Register here</Button>
+                                </Typography>
+                            </div>
+                        )}
+                    </Box>
+                </Paper>
+            </Container>
         );
     }
 }
