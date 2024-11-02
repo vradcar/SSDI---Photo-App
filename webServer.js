@@ -309,7 +309,7 @@ app.get("/user/:id", function (request, response) {
   }
 
   User.findById(request.params.id, { __v: 0, login_name: 0, password: 0})
-    .select('-createdAt-updatedAt')
+    .select('-createdAt -updatedAt')
     .then(user => {
       if (!user) {
         response.status(400).send("User not found");
