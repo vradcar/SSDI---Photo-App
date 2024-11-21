@@ -55,7 +55,7 @@ const SchemaInfo = require("./schema/schemaInfo.js");
 const Activity = require("./schema/activities.js");
 
 mongoose.set("strictQuery", false);
-mongoose.connect("mongodb://127.0.0.1/project6", {
+mongoose.connect("mongodb://127.0.0.1/project8", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
