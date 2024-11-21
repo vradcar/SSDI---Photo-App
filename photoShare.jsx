@@ -9,6 +9,7 @@ import UserDetail from './components/userDetail/userDetail';
 import UserList from './components/userList/userList';
 import UserPhotos from './components/userPhotos/userPhotos';
 import LoginRegister from "./components/loginRegister/loginRegister";
+import ActivityFeed from "./components/Activities/Activities"; 
 
 class PhotoShare extends React.Component {
   constructor(props) {
@@ -65,6 +66,13 @@ class PhotoShare extends React.Component {
                         changeMainContent={this.changeMainContent}
                         redirectTo="/login-register"
                       />
+                      <PrivateRoute
+                        path="/activities"
+                        component={ActivityFeed}
+                        user={this.state.user}
+                        changeMainContent={this.changeMainContent}
+                        redirectTo="/login-register"
+                      />
                       <Route
                         path="/"
                         render={() => <Redirect to="/users" />}
@@ -102,14 +110,12 @@ class PhotoShare extends React.Component {
 const PrivateRoute = ({ component: Component, user, changeMainContent, redirectTo, ...rest }) => (
   <Route
     {...rest}
-    render={(props) =>
-      user ? (
+    render={(props) => user ? (
         <Component {...props} changeMainContent={changeMainContent} />
       ) : (
         <Redirect to={redirectTo} />
       )
-    }
-  />
+    } />
 );
 
 ReactDOM.render(<PhotoShare />, document.getElementById('photoshareapp'));
