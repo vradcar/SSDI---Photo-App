@@ -52,10 +52,9 @@ app.use(bodyParser.json());
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
 const SchemaInfo = require("./schema/schemaInfo.js");
-const Activity = require("./schema/activities.js");
 
 mongoose.set("strictQuery", false);
-mongoose.connect("mongodb://127.0.0.1/project8", {
+mongoose.connect("mongodb://127.0.0.1/project6", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -168,7 +167,6 @@ app.post("/user", function (request, response) {
       })
       .then(user => {
         request.session.user_id = user._id;
-        logActivity(user._id, "New Account", `${user.first_name} Created New Account`);
         response.end(JSON.stringify(user));
       })
       .catch(err1 => {
@@ -207,9 +205,7 @@ app.post("/photos/new", function (request, response) {
         user_id: mongoose.Types.ObjectId(user_id),
         comment: []
       })
-      .then(() => {
-        logActivity(user_id, "upload_photo", `Uploaded photo: ${filename}`);
-        response.end()})
+      .then(() => response.end())
       .catch(err2 => {
         console.error("Error in /photos/new", err2);
         response.status(500).send(JSON.stringify(err2));
@@ -250,7 +246,6 @@ app.post("/commentsOfPhoto/:photo_id", function (request, response) {
         console.error("Error in /commentsOfPhoto/:photo_id", err);
         response.status(500).send(JSON.stringify(err));
       } else {
-        logActivity(user_id, "New_Comment", `Added New Comment on Photo`);
         response.end();
       }
     }
@@ -273,7 +268,6 @@ app.post("/admin/login", function (request, response) {
       response.status(400).send("Invalid login credentials");
     } else {
       request.session.user_id = user[0]._id;
-      logActivity(user[0]._id, "login", `User ${user[0].first_name} logged in`);
       response.end(JSON.stringify(user[0]));
     }
   });
@@ -283,8 +277,6 @@ app.post("/admin/login", function (request, response) {
  * URL /admin/logout - logs out the current user
  */
 app.post("/admin/logout", function (request, response) {
-  const user_id = getSessionUserID(request);
-  logActivity(user_id, "logout", "User logged out");
   request.session.destroy(function () {
     response.end();
   });
@@ -330,22 +322,6 @@ app.get("/user/:id", function (request, response) {
       response.status(500).send();
     });
 });
-
-app.get("/username/:id", async (req, res) => {
-  const { id } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ error: "Invalid user ID format" });
-  }
-
-  try {
-    const user = await User.findById(id);
-    res.json(user || { username: "Unknown User", id });
-  } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
 
 /**
  * URL /photosOfUser/:id - Returns the photos of a user along with all comments on each photo.
@@ -429,49 +405,6 @@ app.get("/photosOfUser/:id", function (request, response) {
 });
 
 
-// Endpoint to fetch all activities
-app.get("/activities", async (req, res) => {
-  try {
-    const activities = await Activity.find()
-      .populate('user_id', 'username')  // Populate with user details like username
-      .sort({ timestamp: -1 });
-    res.json(activities);
-  } catch (error) {
-    console.error("Error fetching activities:", error);
-    res.status(500).send("Failed to fetch activities.");
-  }
-});
-
-// app.get("/activities", function (request, response) {
-//   if (hasNoUserSession(request, response)) return;
-
-//   Activity.find({})
-//     .sort({ timestamp: -1 }) // Sort by most recent activity
-//     .populate("user_id", "first_name last_name") // Include user details
-//     .then((activities) => {
-//       response.end(JSON.stringify(activities));
-//     })
-//     .catch((err) => {
-//       console.error("Error fetching activities:", err);
-//       response.status(500).send();
-//     });
-// });
-
-// Log an activity
-function logActivity(user_id, action, description) {
-  Activity.create({
-    _id: new mongoose.Types.ObjectId(),
-    user_id: mongoose.Types.ObjectId(user_id),
-    action,
-    description,
-    timestamp: new Date(),
-  }).catch((err) => {
-    console.error("Error logging activity:", err);
-  });
-}
-
-
-
-const server = app.listen(3001, function () {
-  console.log(`Listening at http://localhost:3001 exporting the directory ${__dirname}`);
+const server = app.listen(3000, function () {
+  console.log(`Listening at http://localhost:3000 exporting the directory ${__dirname}`);
 });
