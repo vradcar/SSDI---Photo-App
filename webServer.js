@@ -350,9 +350,121 @@ app.get("/username/:id", async (req, res) => {
 /**
  * URL /photosOfUser/:id - Returns the photos of a user along with all comments on each photo.
  */
+// app.get("/photosOfUser/:id", function (request, response) {
+//   if (hasNoUserSession(request, response)) return;
+
+//   // Assuming current user ID is stored in the session or JWT token.
+//   //const currentUserId = request.session.userId || request.user.id; // Adjust as per your session structure
+//   const currentUserId = getSessionUserID(req); 
+//   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
+//     return response.status(400).send("Invalid user ID format");
+//   }
+
+//   User.findById(request.params.id)
+//     .then(user => {
+//       if (!user) {
+//         response.status(400).send("User not found");
+//         return;
+//       }
+//       return Photo.aggregate([
+//         { $match: { user_id: mongoose.Types.ObjectId(request.params.id) } },
+//         {
+//           $lookup: {
+//             from: "users",
+//             localField: "comments.user_id",
+//             foreignField: "_id",
+//             as: "users"
+//           }
+//         },
+//         {
+//           $addFields: {
+//             comments: {
+//               $map: {
+//                 input: "$comments",
+//                 as: "comment",
+//                 in: {
+//                   $mergeObjects: [
+//                     "$$comment",
+//                     {
+//                       user: {
+//                         $arrayElemAt: [
+//                           {
+//                             $map: {
+//                               input: {
+//                                 $filter: {
+//                                   input: "$users",
+//                                   as: "user",
+//                                   cond: { $eq: ["$$user._id", "$$comment.user_id"] }
+//                                 }
+//                               },
+//                               as: "filteredUser",
+//                               in: {
+//                                 _id: "$$filteredUser._id",
+//                                 first_name: "$$filteredUser.first_name",
+//                                 last_name: "$$filteredUser.last_name"
+//                               }
+//                             }
+//                           },
+//                           0
+//                         ]
+//                       }
+//                     }
+//                   ]
+//                 }
+//               }
+//             }
+//           }
+//         },
+//         {
+//           $project: {
+//             users: 0,
+//             __v: 0,
+//             "comments.user_id": 0
+//           }
+//         }
+//       ]);
+//     })
+//     .then(photos => {
+//       // Send response with the currentUserId
+//       response.json({
+//         currentUserId: currentUserId, // Adding current user ID to the response
+//         photos: photos || []
+//       });
+//     })
+//     .catch(err => {
+//       console.error("Error in /photosOfUser/:id", err);
+//       response.status(500).send(JSON.stringify(err));
+//     });
+// });
+
+
+app.get("/currentUser", (req, res) => {
+  if (hasNoUserSession(req, res)) return;
+
+  const currentUserId = getSessionUserID(req); // Use your session/JWT mechanism to get the user ID.
+  if (!currentUserId) {
+      return res.status(401).send("No logged-in user found");
+  }
+
+  User.findById(currentUserId)
+      .then((user) => {
+          if (!user) {
+              res.status(404).send("User not found");
+              return;
+          }
+          res.json({ userId: currentUserId, firstName: user.first_name, lastName: user.last_name });
+      })
+      .catch((err) => {
+          console.error("Error fetching current user", err);
+          res.status(500).send("Error fetching current user");
+      });
+});
+
+
+
 app.get("/photosOfUser/:id", function (request, response) {
   if (hasNoUserSession(request, response)) return;
-
+  const currentUserId = getSessionUserID(request);
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
     return response.status(400).send("Invalid user ID format");
   }
@@ -421,7 +533,8 @@ app.get("/photosOfUser/:id", function (request, response) {
         }
       ]);
     })
-    .then(photos => response.end(JSON.stringify(photos || [])))
+    .then(photos => response.end(
+      JSON.stringify(photos || [])))
     .catch(err => {
       console.error("Error in /photosOfUser/:id", err);
       response.status(500).send(JSON.stringify(err));
@@ -469,6 +582,128 @@ function logActivity(user_id, action, description) {
     console.error("Error logging activity:", err);
   });
 }
+
+// Like a photo
+app.post("/photos/:photo_id/like", (req, res) => {
+  if (hasNoUserSession(req, res)) return;
+  
+  const photo_id = req.params.photo_id;
+  const user_id = getSessionUserID(req);
+
+  Photo.findByIdAndUpdate(
+    photo_id,
+    { $addToSet: { likes: user_id } }, // Adds user_id to likes only if it's not already present
+    { new: true }, // Return the updated document
+    (err, updatedPhoto) => {
+      if (err || !updatedPhoto) {
+        res.status(400).send("Photo not found");
+        return;
+      }
+      if (!updatedPhoto.likes.includes(user_id)) {
+        res.status(400).send("User already liked this photo");
+        return;
+      }
+      res.send("Liked successfully");
+    }
+  );
+});
+
+// Unlike a photo
+
+// app.post('/photos/:photoId/unlike', (req, res) => {
+//   const photoId = req.params.photoId;
+//   const currentUserId = getSessionUserID(req)
+//   //.body.currentUser_Id; // Get user ID from request body
+
+//   Photo.findById(photoId)
+//       .then(photo => {
+//           if (!photo) {
+//               return res.status(404).send('Photo not found');
+//           }
+//           // Remove the user's like
+//           photo.likes = photo.likes.filter(id => id !== currentUserId);
+//           return photo.save();
+//       })
+//       .then(() => res.status(200).send({ message: 'Unliked successfully' }))
+//       .catch(error => res.status(500).send(error));
+// });
+
+
+app.post("/photos/:photo_id/unlike", (req, res) => {
+  if (hasNoUserSession(req, res)) return;
+
+  const photo_id = req.params.photo_id;
+  const user_id = getSessionUserID(req);
+
+  Photo.findByIdAndUpdate(
+    photo_id,
+    { $pull: { likes: user_id } }, // Removes user_id from likes
+    { new: true }, // Return the updated document
+    (err, updatedPhoto) => {
+      if (err || !updatedPhoto) {
+        res.status(400).send("Photo not found");
+        return;
+      }
+      if (updatedPhoto.likes.includes(user_id)) {
+        res.status(400).send("User has not liked this photo");
+        return;
+      }
+      res.send("Unliked successfully");
+    }
+  );
+});
+
+
+
+// // Like a photo
+// app.post("/photos/:photo_id/like", (req, res) => {
+//   if (hasNoUserSession(req, res)) return;
+  
+//   const photo_id = req.params.photo_id;
+//   const user_id = getSessionUserID(req);
+
+//   Photo.findById(photo_id, (err, photo) => {
+//       if (err || !photo) {
+//           res.status(400).send("Photo not found");
+//           return;
+//       }
+//       if (photo.likes.includes(user_id)) {
+//           res.status(400).send("User already liked this photo");
+//           return;
+//       }
+//       photo.likes.push(user_id);
+//       photo.save((err) => {
+//           if (err) res.status(500).send("Error updating likes");
+//           else res.send("Liked successfully");
+//       });
+//   });
+// });
+
+// // Unlike a photo
+// app.post("/photos/:photo_id/unlike", (req, res) => {
+//   if (hasNoUserSession(req, res)) return;
+
+//   const photo_id = req.params.photo_id;
+//   const user_id = getSessionUserID(req);
+
+//   Photo.findById(photo_id, (err, photo) => {
+//       if (err || !photo) {
+//           res.status(400).send("Photo not found");
+//           return;
+//       }
+//       const likeIndex = photo.likes.indexOf(user_id);
+//       if (likeIndex === -1) {
+//           res.status(400).send("User has not liked this photo");
+//           return;
+//       }
+//       photo.likes.splice(likeIndex, 1);
+//       photo.save((err) => {
+//           if (err) res.status(500).send("Error updating likes");
+//           else res.send("Unliked successfully");
+//       });
+//   });
+// });
+
 
 
 
