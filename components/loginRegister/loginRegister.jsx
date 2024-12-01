@@ -70,7 +70,7 @@ class LoginRegister extends React.Component {
         axios.post("/user/", this.state.user, {
             headers: { 'Content-Type': 'application/json' }
         })
-        .then((response) => {
+        .then(() => { // Removed unused 'response'
             this.setState({ showRegistrationSuccess: true, showRegistrationError: false });
             this.toggleForm();
         })
@@ -126,7 +126,7 @@ class LoginRegister extends React.Component {
                                     <Button type="button" variant="contained" onClick={this.handleLogin} style={{ borderRadius: '5px', backgroundColor: '#3897f0', color: '#ffffff' }}>Login</Button>
                                 </Box>
                                 <Typography mt={2} style={{ textAlign: 'center' }}>
-                                    Don't have an account? <Button variant="text" onClick={this.toggleForm} style={{ color: '#3897f0' }}>Register here</Button>
+                                    Don&apos;t have an account? <Button variant="text" onClick={this.toggleForm} style={{ color: '#3897f0' }}>Register here</Button>
                                 </Typography>
                             </div>
                         )}
