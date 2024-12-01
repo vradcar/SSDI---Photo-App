@@ -25,3 +25,8 @@
     color: #888; /* Gray color for footer text */
     margin-top: 5px; /* Space above footer */
 }
+
+.comment-item{
+    font-weight: bold;
+    margin-right: 8px;
+}

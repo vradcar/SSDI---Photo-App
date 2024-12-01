@@ -1,11 +1,13 @@
 import React from 'react';
 import {
-    Button, TextField,
+    Button, TextField,IconButton,
     ImageList, ImageListItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Typography
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import './userPhotos.css';
 import axios from 'axios';
+import DeleteIcon from '@mui/icons-material/Delete';
+//import IconButton from '@mui/material/IconButton';
 
 /**
  * Function to format date to "DD-MM-YYYY HH:MM"
@@ -34,7 +36,9 @@ class UserPhotos extends React.Component {
             add_comment: false,
             current_photo_id: undefined,
             likedPhotos: new Set(), // Tracks photos that the user has liked
-            currentUserId: null
+            currentUserId: null,
+            firstName: null,
+            lastName: null,
         };
     }
 
@@ -61,6 +65,8 @@ class UserPhotos extends React.Component {
         axios.get('/currentUser')
             .then((response) => {
                 const currentUserId = response.data.userId;
+                this.state.firstName = response.data.firstName;
+                this.state.lastName = response.data.lastName;
     
                 // Step 2: Fetch user photos
                 return axios.get(`/photosOfUser/${user_id}`).then((photoResponse) => {
@@ -206,46 +212,56 @@ class UserPhotos extends React.Component {
                     });
             });
     };
+
+    handleDeletePhoto = (photoId) => {
+        axios
+            .delete(`/photos/${photoId}`)
+            .then(() => {
+                // Fetch updated photos after deletion
+                return axios.get(`/photosOfUser/${this.state.user_id}`);
+            })
+            .then((response) => {
+                this.setState({ photos: response.data });
+            })
+            .catch((error) => {
+                if (error.response && error.response.status === 403) {
+                    // Unauthorized error (403)
+                    this.setState({
+                        errorMessage: "You are not authorized to delete this photo.",
+                        showErrorDialog: true
+                    });
+                } else {
+                    console.error("Error deleting photo:", error);
+                }
+            });
+    };
     
+    handleDeleteComment = (photoId, commentId) => {
+        axios
+            .delete(`/photos/${photoId}/comments/${commentId}`)
+            .then(() => {
+                // Fetch updated photos after deletion
+                return axios.get(`/photosOfUser/${this.state.user_id}`);
+            })
+            .then((response) => {
+                this.setState({ photos: response.data });
+            })
+            .catch((error) => {
+                if (error.response && error.response.status === 403) {
+                    // Unauthorized error (403)
+                    this.setState({
+                        errorMessage: "You are not authorized to delete this comment.",
+                        showErrorDialog: true
+                    });
+                } else {
+                    console.error("Error deleting comment:", error);
+                }
+            });
+    };
 
     
-    // handleUnlike = (photoId) => {
-    //     axios.get('/currentUser')
-    //         .then((response) => {
-    //             const currentUser_Id = response.data.userId; // Fetch current user ID
-    
-    //             // Proceed with the unlike logic
-    //             return axios.post(`/photos/${photoId}/unlike`, { currentUser_Id }) // Pass user ID in request body
-    //                 .then(() => {
-    //                     console.log('Unlike API response:', response.data);
-    //                     this.setState((prevState) => {
-    //                         const likedPhotos = new Set(prevState.likedPhotos);
-    //                         likedPhotos.delete(photoId); // Remove photo ID from liked set
-    
-    //                         const updatedPhotos = prevState.photos.map(photo => {
-    //                             if (photo._id === photoId) {
-    //                                 console.log('Before unlike:', photo.likes);
-    //                                 const updatedLikes = photo.likes.filter((id) => id !== currentUser_Id);
-    //                                 console.log('After unlike:', updatedLikes);
-    //                                 return { ...photo, likes: updatedLikes };
-    //                             }
-    //                             return photo;
-    //                         });
-    //                         console.log('Updated photos:', updatedPhotos);
-    //                         return {
-    //                             likedPhotos,
-    //                             photos: updatedPhotos, // Update photos with modified like count
-    //                         };
-    //                     });
-    //                 });
-    //         })
-    //         .catch((error) => {
-    //             console.error('Error unliking photo:', error);
-    //         });
-    // };
-    
-    
-    
+
+
     render() {
         const { user_id, photos, add_comment, new_comment } = this.state;
     
@@ -271,9 +287,9 @@ class UserPhotos extends React.Component {
                         sortedPhotos.map((photo) => {
                             // Dynamically determine if the current user has liked the photo
                             const isLiked = this.state.likedPhotos.has(photo._id);
-    
+                            
                             return (
-                                <div key={photo._id}>
+                                <div key={photo._id} style={{ position: 'relative' }}>
                                     <ImageListItem>
                                         <img
                                             src={`images/${photo.file_name}`}
@@ -281,19 +297,85 @@ class UserPhotos extends React.Component {
                                             loading="lazy"
                                         />
                                     </ImageListItem>
-                                    <div>
+                                    {/* Like Button, Like Count, Delete Button in Same Line */}
+                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
                                         <Button
                                             variant="contained"
-                                            color={isLiked ? "secondary" : "primary"}
+                                            color={isLiked ? 'secondary' : 'primary'}
                                             onClick={() =>
                                                 isLiked
                                                     ? this.handleUnlike(photo._id)
                                                     : this.handleLike(photo._id)
                                             }
+                                            style={{ marginRight: '8px' }}
                                         >
-                                            {isLiked ? "Unlike" : "Like"}
+                                            {isLiked ? 'Unlike' : 'Like'}
                                         </Button>
-                                        <Typography>{photo.likes.length} Likes</Typography>
+                                        <Typography style={{ marginRight: '8px' }}>
+                                            {photo.likes.length} Likes
+                                        </Typography>
+                                        {photo.user_id === user_id && (
+                                            <IconButton
+                                                color="error"
+                                                onClick={() => this.handleDeletePhoto(photo._id)}
+                                                style={{
+                                                    marginTop: '10px',
+                                                    //marginRight: '10px',
+                                                    marginLeft:'300px',
+                                                    //zIndex: 10,
+                                                }}
+                                            >
+                                                <DeleteIcon
+                                                    style={{
+                                                        color: 'red',
+                                                        fontSize: '40px',
+                                                    }}
+                                                />
+                                            </IconButton>
+                                        )}
+                                        
+                                    </div>
+                                    <div>
+                                    <Button
+                                            variant="outlined"
+                                            photo_id={photo._id}
+                                            onClick={this.handleShowAddComment}
+                                            color="primary"
+                                        >
+                                            Add Comment
+                                        </Button>
+                                    </div>
+                                    {/* Comments Section */}
+                                    <div className="comments-section">
+                                        {photo.comments && photo.comments.length > 0 ? (
+                                            photo.comments.map((comment) => (
+                                                //this.fetchUserName(comment.user_id);
+                                                <div
+                                                    key={`${comment._id}-${comment.date_time}`}
+                                                    className="comment-item"
+                                                >
+                                                    <Typography>
+                                                        <strong>{comment.user.first_name} {comment.user.last_name}</strong>: {comment.comment}
+                                                        
+                                                    </Typography>
+                                                    
+                                                    <Typography variant="caption">
+                                                        {new Date(comment.date_time).toLocaleString()}
+                                                        <IconButton
+                                                                color="error"
+                                                                onClick={() => this.handleDeleteComment(photo._id, comment._id)}
+                                                                style={{ marginBottom: '10px',marginTop:'0px', marginLeft: '420px', padding: '5px', display: 'flex', alignItems: 'right', color:'black'}}
+                                                            >
+                                                                <DeleteIcon style={{ color: 'red', fontSize: '30px' }} />
+                                                            </IconButton>
+                                                    </Typography>
+                                                    
+                                                    
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <Typography>No Comments</Typography>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -305,9 +387,7 @@ class UserPhotos extends React.Component {
                 <Dialog open={add_comment}>
                     <DialogTitle>Add Comment</DialogTitle>
                     <DialogContent>
-                        <DialogContentText>
-                            Enter New Comment for Photo
-                        </DialogContentText>
+                        <DialogContentText>Enter New Comment for Photo</DialogContentText>
                         <TextField
                             autoFocus
                             margin="dense"
@@ -326,9 +406,24 @@ class UserPhotos extends React.Component {
                         <Button onClick={this.handleSubmitAddComment}>Add</Button>
                     </DialogActions>
                 </Dialog>
+                <Dialog
+                    open={this.state.showErrorDialog}
+                    onClose={() => this.setState({ showErrorDialog: false })}
+                >
+                    <DialogTitle>Error</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText>{this.state.errorMessage}</DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => this.setState({ showErrorDialog: false })} color="primary">
+                            Close
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </div>
         ) : null;
     }
+    
 }
 
 export default UserPhotos;
