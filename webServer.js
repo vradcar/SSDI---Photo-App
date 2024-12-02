@@ -126,7 +126,9 @@ app.get("/test/:p1", function (request, response) {
           response.status(500).send(JSON.stringify(err));
         } else {
           const obj = {};
-          collections.forEach(col => obj[col.name] = col.count);
+          collections.forEach(col => {
+            obj[col.name] = col.count;
+          });        
           response.end(JSON.stringify(obj));
         }
       }
@@ -135,6 +137,20 @@ app.get("/test/:p1", function (request, response) {
     response.status(400).send("Bad param " + param);
   }
 });
+
+// Log an activity
+function logActivity(user_id, action, description) {
+  
+  Activity.create({
+    _id: new mongoose.Types.ObjectId(),
+    user_id: user_id,
+    action,
+    description,
+    timestamp: new Date(),
+  }).catch((err) => {
+    console.error("Error logging activity:", err);
+  });
+}
 
 /**
  * URL /user - adds a new user
@@ -209,7 +225,7 @@ app.post("/photos/new", function (request, response) {
       })
       .then(() => {
         logActivity(user_id, "upload_photo", `Uploaded photo: ${filename}`);
-        response.end()})
+        response.end();})
       .catch(err2 => {
         console.error("Error in /photos/new", err2);
         response.status(500).send(JSON.stringify(err2));
@@ -314,7 +330,8 @@ app.get("/user/:id", function (request, response) {
 
   // Validate ObjectId
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
-    return response.status(400).send("Invalid user ID format");
+    response.status(400).send("Invalid user ID format");
+    return; // Explicitly return to ensure consistency
   }
 
   User.findById(request.params.id, { __v: 0, login_name: 0, password: 0})
@@ -341,12 +358,15 @@ app.get("/username/:id", async (req, res) => {
 
   try {
     const user = await User.findById(id);
-    res.json(user || { username: "Unknown User", id });
+    if (user) {
+      return res.json(user);
+    } else {
+      return res.json({ username: "Unknown User", id });
+    }
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "Server error" });
   }
 });
-
 
 
 app.get("/currentUser", (req, res) => {
@@ -354,7 +374,8 @@ app.get("/currentUser", (req, res) => {
 
   const currentUserId = getSessionUserID(req); // Use your session/JWT mechanism to get the user ID.
   if (!currentUserId) {
-      return res.status(401).send("No logged-in user found");
+    res.status(401).send("No logged-in user found");
+    return; // Explicit return to ensure consistent behavior.
   }
 
   User.findById(currentUserId)
@@ -377,16 +398,20 @@ app.get("/currentUser", (req, res) => {
 
 app.get("/photosOfUser/:id", function (request, response) {
   if (hasNoUserSession(request, response)) return;
+
   const currentUserId = getSessionUserID(request);
   if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
-    return response.status(400).send("Invalid user ID format");
+    response.status(400).send("Invalid user ID format");
+    return;
   }
+
+  console.log(currentUserId);
 
   User.findById(request.params.id)
     .then(user => {
       if (!user) {
         response.status(400).send("User not found");
-        return;
+        return null; // Ensure consistent return (null or value)
       }
       return Photo.aggregate([
         { $match: { user_id: mongoose.Types.ObjectId(request.params.id) } },
@@ -395,8 +420,8 @@ app.get("/photosOfUser/:id", function (request, response) {
             from: "users",
             localField: "comments.user_id",
             foreignField: "_id",
-            as: "users"
-          }
+            as: "users",
+          },
         },
         {
           $addFields: {
@@ -416,41 +441,43 @@ app.get("/photosOfUser/:id", function (request, response) {
                                 $filter: {
                                   input: "$users",
                                   as: "user",
-                                  cond: { $eq: ["$$user._id", "$$comment.user_id"] }
-                                }
+                                  cond: { $eq: ["$$user._id", "$$comment.user_id"] },
+                                },
                               },
                               as: "filteredUser",
                               in: {
                                 _id: "$$filteredUser._id",
                                 first_name: "$$filteredUser.first_name",
-                                last_name: "$$filteredUser.last_name"
-                              }
-                            }
+                                last_name: "$$filteredUser.last_name",
+                              },
+                            },
                           },
-                          0
-                        ]
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
+                          0,
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
         },
         {
           $project: {
             users: 0,
             __v: 0,
-            "comments.user_id": 0
-          }
-        }
+            "comments.user_id": 0,
+          },
+        },
       ]);
     })
-    .then(photos => response.end(
-      JSON.stringify(photos || [])))
+    .then(photos => {
+      if (!photos) return; // Ensure no duplicate response
+      response.json(photos || []);
+    })
     .catch(err => {
       console.error("Error in /photosOfUser/:id", err);
-      response.status(500).send(JSON.stringify(err));
+      response.status(500).json({ error: "Server error" });
     });
 });
 
@@ -467,22 +494,6 @@ app.get("/activities", async (req, res) => {
     res.status(500).send("Failed to fetch activities.");
   }
 });
-
-
-
-// Log an activity
-function logActivity(user_id, action, description) {
-  
-  Activity.create({
-    _id: new mongoose.Types.ObjectId(),
-    user_id: user_id,
-    action,
-    description,
-    timestamp: new Date(),
-  }).catch((err) => {
-    console.error("Error logging activity:", err);
-  });
-}
 
 // Like a photo
 app.post("/photos/:photo_id/like", (req, res) => {
@@ -583,11 +594,13 @@ app.delete("/photos/:photoId", async function (request, response) {
       const photo = await Photo.findById(photoId);
 
       if (!photo) {
-          return response.status(404).send("Photo not found.");
+          response.status(404).send("Photo not found.");
+          return;
       }
 
       if (photo.user_id.toString() !== user_id) {
-          return response.status(403).send("You are not authorized to delete this photo.");
+          response.status(403).send("You are not authorized to delete this photo.");
+          return;
       }
 
       await photo.remove(); // Delete photo document
@@ -608,17 +621,20 @@ app.delete("/photos/:photoId/comments/:commentId", async function (request, resp
       const photo = await Photo.findById(photoId);
 
       if (!photo) {
-          return response.status(404).send("Photo not found.");
+          response.status(404).send("Photo not found.");
+          return;
       }
 
       const comment = photo.comments.id(commentId);
 
       if (!comment) {
-          return response.status(404).send("Comment not found.");
+          response.status(404).send("Comment not found.");
+          return;
       }
 
       if (comment.user_id.toString() !== user_id) {
-          return response.status(403).send("You are not authorized to delete this comment.");
+          response.status(403).send("You are not authorized to delete this comment.");
+          return;
       }
 
       comment.remove(); // Remove the comment
@@ -631,6 +647,7 @@ app.delete("/photos/:photoId/comments/:commentId", async function (request, resp
 });
 
 
-const server = app.listen(3000, function () {
+app.listen(3000, function () {
   console.log(`Listening at http://localhost:3000 exporting the directory ${__dirname}`);
 });
+
