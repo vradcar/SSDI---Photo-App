@@ -107,15 +107,24 @@ class PhotoShare extends React.Component {
  * PrivateRoute component to handle authentication-based redirection.
  * If the user is logged in, it renders the specified component; otherwise, redirects to the login page.
  */
-const PrivateRoute = ({ component: Component, user, changeMainContent, redirectTo, ...rest }) => (
-  <Route
-    {...rest}
-    render={(props) => user ? (
-        <Component {...props} changeMainContent={changeMainContent} />
-      ) : (
-        <Redirect to={redirectTo} />
-      )
-    } />
-);
+/**
+ * PrivateRoute component to handle authentication-based redirection.
+ * If the user is logged in, it renders the specified component; otherwise, redirects to the login page.
+ */
+function PrivateRoute({ component: Component, user, changeMainContent, redirectTo, ...rest }) {
+  return (
+    <Route
+      {...rest}
+      render={(props) => (
+        user ? (
+          <Component {...props} changeMainContent={changeMainContent} />
+        ) : (
+          <Redirect to={redirectTo} />
+        )
+      )}
+    />
+  );
+}
+
 
 ReactDOM.render(<PhotoShare />, document.getElementById('photoshareapp'));

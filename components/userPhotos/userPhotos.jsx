@@ -3,7 +3,6 @@ import {
     Button, TextField,IconButton,
     ImageList, ImageListItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Typography
 } from '@mui/material';
-import { Link } from 'react-router-dom';
 import './userPhotos.css';
 import axios from 'axios';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -23,6 +22,8 @@ const formatDate = (dateString) => {
     return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
 
+console.log(formatDate);
+
 /**
  * Define UserPhotos, a React component of project #5
  */
@@ -36,11 +37,12 @@ class UserPhotos extends React.Component {
             add_comment: false,
             current_photo_id: undefined,
             likedPhotos: new Set(), // Tracks photos that the user has liked
-            currentUserId: null,
+            // currentUserId: null,
             firstName: null,
             lastName: null,
         };
     }
+    
 
     componentDidMount() {
         const new_user_id = this.props.match.params.userId;
@@ -65,8 +67,10 @@ class UserPhotos extends React.Component {
         axios.get('/currentUser')
             .then((response) => {
                 const currentUserId = response.data.userId;
-                this.state.firstName = response.data.firstName;
-                this.state.lastName = response.data.lastName;
+                this.setState({
+                    firstName: response.data.firstName,
+                    lastName: response.data.lastName
+                });
     
                 // Step 2: Fetch user photos
                 return axios.get(`/photosOfUser/${user_id}`).then((photoResponse) => {
@@ -160,10 +164,12 @@ class UserPhotos extends React.Component {
 
                     return {
                         likedPhotos,
-                        photos: prevState.photos.map(photo =>
-                            photo._id === photoId ? { ...photo, likes: [...photo.likes, this.state.user_id] } : photo
+                        photos: prevState.photos.map((photo) => (photo._id === photoId 
+                            ? { ...photo, likes: [...photo.likes, this.state.user_id] } 
+                            : photo)
                         )
                     };
+                    
                 });
             })
             .catch(console.error);
@@ -183,7 +189,7 @@ class UserPhotos extends React.Component {
                         // After successfully unliking, fetch the updated photo data
                         return axios.get(`/photosOfUser/${this.state.user_id}`);
                     })
-                    .then((response) => {
+                    .then(() => {
                         // Update state with the latest photo data (including likes)
                         const updatedPhotos = response.data;
     
@@ -287,7 +293,7 @@ class UserPhotos extends React.Component {
                         sortedPhotos.map((photo) => {
                             // Dynamically determine if the current user has liked the photo
                             const isLiked = this.state.likedPhotos.has(photo._id);
-                            
+                            console.log(this.state.firstName, this.state.lastName);
                             return (
                                 <div key={photo._id} style={{ position: 'relative' }}>
                                     <ImageListItem>
@@ -302,15 +308,16 @@ class UserPhotos extends React.Component {
                                         <Button
                                             variant="contained"
                                             color={isLiked ? 'secondary' : 'primary'}
-                                            onClick={() =>
-                                                isLiked
+                                            onClick={() => {
+                                                return isLiked
                                                     ? this.handleUnlike(photo._id)
-                                                    : this.handleLike(photo._id)
-                                            }
+                                                    : this.handleLike(photo._id);
+                                            }}
                                             style={{ marginRight: '8px' }}
                                         >
                                             {isLiked ? 'Unlike' : 'Like'}
                                         </Button>
+
                                         <Typography style={{ marginRight: '8px' }}>
                                             {photo.likes.length} Likes
                                         </Typography>
@@ -336,7 +343,7 @@ class UserPhotos extends React.Component {
                                         
                                     </div>
                                     <div>
-                                    <Button
+                                        <Button
                                             variant="outlined"
                                             photo_id={photo._id}
                                             onClick={this.handleShowAddComment}
@@ -362,12 +369,12 @@ class UserPhotos extends React.Component {
                                                     <Typography variant="caption">
                                                         {new Date(comment.date_time).toLocaleString()}
                                                         <IconButton
-                                                                color="error"
-                                                                onClick={() => this.handleDeleteComment(photo._id, comment._id)}
-                                                                style={{ marginBottom: '10px',marginTop:'0px', marginLeft: '420px', padding: '5px', display: 'flex', alignItems: 'right', color:'black'}}
-                                                            >
-                                                                <DeleteIcon style={{ color: 'red', fontSize: '30px' }} />
-                                                            </IconButton>
+                                                            color="error"
+                                                            onClick={() => this.handleDeleteComment(photo._id, comment._id)}
+                                                            style={{ marginBottom: '10px',marginTop:'0px', marginLeft: '420px', padding: '5px', display: 'flex', alignItems: 'right', color:'black'}}
+                                                        >
+                                                            <DeleteIcon style={{ color: 'red', fontSize: '30px' }} />
+                                                        </IconButton>
                                                     </Typography>
                                                     
                                                     
