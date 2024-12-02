@@ -90,18 +90,17 @@ class Activities extends Component {
   renderActivity(activity) {
     const { action, timestamp, user, description } = activity;
     const formattedDate = new Date(timestamp).toLocaleString();
-  
-    // Accessing this.props to satisfy the 'this' requirement.
-    const displayStyle = this.props.displayStyle || {}; // Example usage of `this`
-  
+
     return (
-      <ListItem key={activity._id} style={displayStyle}>
+      <ListItem key={activity._id}>
         <ListItemAvatar>
           <Avatar>{action[0]}</Avatar> {/* Use the first letter of the action */}
         </ListItemAvatar>
         <ListItemText
           primary={`${action} by ${user.first_name} ${user.last_name}`}
-          secondary={`${formattedDate} ${description}`}
+          secondary={`${formattedDate} ${description
+            //action === "New Comment" && description ? `- Comment: "${description}"` : ""
+          }`}
         />
       </ListItem>
     );

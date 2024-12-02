@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    AppBar, Toolbar, Typography, Button, Divider, Box, Alert, Snackbar, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
+    AppBar, Toolbar, Typography, Button, Divider, Box, Alert, Snackbar
 } from '@mui/material';
 import { withRouter } from 'react-router-dom'; // Import withRouter to access history
 import './TopBar.css';
@@ -14,7 +14,7 @@ class TopBar extends React.Component {
             photo_upload_show: false,
             photo_upload_error: false,
             photo_upload_success: false,
-            deleteDialogOpen: false,
+            delete_confirm: false,
         };
         this.handleLogout = this.handleLogout.bind(this);
         this.handleNewPhoto = this.handleNewPhoto.bind(this);
@@ -86,31 +86,23 @@ class TopBar extends React.Component {
         this.props.history.push("/activities");
     }
 
+    // Delete user handler
     handleDeleteUser() {
-        this.setState({ deleteDialogOpen: true });
+        const confirmation = window.confirm("Are you sure you want to delete your account?");
+        if (confirmation) {
+            axios.delete("/user/delete")
+                .then(() => {
+                    alert("Your account has been deleted.");
+                    this.props.changeUser(undefined); // Logout the user after deletion
+                    this.props.history.push("/login-register"); // Redirect to homepage or login page
+                })
+                .catch((error) => {
+                    console.error("Error deleting user", error);
+                    alert("There was an error deleting your account.");
+                });
+        }
     }
 
-    confirmDeleteUser = () => {
-        axios.delete("/user/delete")
-            .then(() => {
-                this.setState({ deleteDialogOpen: false });
-                this.props.changeUser(undefined); // Logout the user after deletion
-                this.props.history.push("/login-register"); // Redirect to login page
-            })
-            .catch((error) => {
-                console.error("Error deleting user", error);
-                this.setState({ deleteDialogOpen: false });
-                this.setState({
-                    photo_upload_show: true,
-                    photo_upload_error: true,
-                    photo_upload_success: false,
-                });
-            });
-    };
-
-    cancelDeleteUser = () => {
-        this.setState({ deleteDialogOpen: false });
-    };
 
     render() {
         return this.state.app_info ? (
@@ -156,6 +148,7 @@ class TopBar extends React.Component {
                                 <Divider orientation="vertical" flexItem />
                                 <Button
                                     variant="contained"
+                                    
                                     onClick={this.handleNavigateToActivities}
                                 >
                                     Activities
@@ -196,25 +189,6 @@ class TopBar extends React.Component {
                                         <div />
                                     )}
                                 </Snackbar>
-                                <Dialog
-                                    open={this.state.deleteDialogOpen}
-                                    onClose={this.cancelDeleteUser}
-                                >
-                                    <DialogTitle>Confirm Delete</DialogTitle>
-                                    <DialogContent>
-                                        <DialogContentText>
-                                            Are you sure you want to delete your account? This action cannot be undone.
-                                        </DialogContentText>
-                                    </DialogContent>
-                                    <DialogActions>
-                                        <Button onClick={this.cancelDeleteUser} color="primary">
-                                            Cancel
-                                        </Button>
-                                        <Button onClick={this.confirmDeleteUser} color="error">
-                                            Confirm
-                                        </Button>
-                                    </DialogActions>
-                                </Dialog>
                             </Box>
                         ) : (
                             "Please Login"
@@ -246,6 +220,5 @@ class TopBar extends React.Component {
 }
 
 export default withRouter(TopBar); // Use withRouter to inject history
-
 
 //Version: {this.state.app_info.version}
