@@ -1,0 +1,30 @@
+Project 8 - Submission Form
+
+Story number and name: 4 - Activity Feed, 
+Story points: 4 
+Brief description: Push the button labeled "Activities" on the toolbar to view the 5 most recent activities that have happened on the website. The activities are displayed in reverse chronological order, showing details such as the date and time, user name, activity type (e.g., photo upload, comment, login, etc.), and additional information depending on the activity type.
+
+
+Story number and name: 5 - Deleting Comments, Photos, and Users,
+Story points: 4 
+Brief description: A user can delete their own photos, comments (even those on other users’ photos), and their entire user account. If the user deletes their account, they will be logged out, and all their photos, comments, and associated data will be removed from the database. A final warning prompt will appear before the deletion is processed.
+
+
+6 - Photo Like Votes
+Story points: 4 
+Brief description: Implement a like button on photos. Users can like or unlike photos, and the button changes accordingly. The number of likes for each photo is displayed next to the like button and is updated immediately upon liking or unliking. Photos are sorted by the number of likes (descending) and by timestamp if likes are equal.
+
+
+Total Story Points:
+12
+
+Marketing Video URL:
+[Your video URL here]
+
+Is it OK if we post your Marketing Video URL on the class discussion forum?
+Yes
+
+Any special instructions for grading:
+Ensure that the Activity Feed updates or can be refreshed with new activities.
+Account deletion should remove all user-related data (photos, comments, etc.) from the database.
+Verify the like/unlike functionality works as expected, with proper sorting of photos.
